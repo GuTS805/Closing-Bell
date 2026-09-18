@@ -235,21 +235,44 @@ async function main() {
       .add(verifyIx);
 
     const before = (await conn.getTokenAccountBalance(userBase.address)).value.amount;
-    console.log(`\n--- ${label}  (${dev >= 0 ? "+" : ""}${dev.toFixed(0)} bps vs oracle)`);
+    console.log(`
+--- ${label}  (${dev >= 0 ? "+" : ""}${dev.toFixed(0)} bps vs oracle)`);
+
+    // sendRawTransaction rather than sendAndConfirmTransaction: a rejected fill still
+    // lands on chain with skipPreflight, and the signature has to be in hand BEFORE
+    // confirmation reports the failure. That signature is the artifact - it makes the
+    // guard's rejection publicly verifiable instead of a local log line.
+    tx.feePayer = payer.publicKey;
+    tx.recentBlockhash = (await conn.getLatestBlockhash("confirmed")).blockhash;
+    tx.sign(payer, pool);
+    const sig = await conn.sendRawTransaction(tx.serialize(), { skipPreflight: true });
     try {
-      const sig = await sendAndConfirmTransaction(conn, tx, [payer, pool],
-        { commitment: "confirmed", skipPreflight: true });
-      const after = (await conn.getTokenAccountBalance(userBase.address)).value.amount;
-      console.log(`    ALLOWED   base ${before} -> ${after}`);
-      console.log(`    ${link(sig)}`);
-      return { outcome: "allowed", sig, before, after };
-    } catch (e: any) {
-      const sig = String(e.message).match(/Transaction ([1-9A-HJ-NP-Za-km-z]{60,})/)?.[1] ?? null;
-      const after = (await conn.getTokenAccountBalance(userBase.address)).value.amount;
-      console.log(`    BLOCKED   base ${before} -> ${after}  (unchanged)`);
-      if (sig) console.log(`    ${link(sig)}`);
-      return { outcome: "blocked", sig, before, after };
+      await conn.confirmTransaction(sig, "confirmed");
+    } catch {
+      /* a rejected fill is the expected outcome for the out-of-band case */
     }
+
+    const parsed = await conn.getTransaction(sig, {
+      commitment: "confirmed", maxSupportedTransactionVersion: 0,
+    });
+    const errored = Boolean(parsed?.meta?.err);
+    const after = (await conn.getTokenAccountBalance(userBase.address)).value.amount;
+    const guardLog = (parsed?.meta?.logMessages ?? [])
+      .find((l) => l.includes("fill:"))?.replace(/^Program log: ?/, "");
+
+    console.log(`    ${errored ? "BLOCKED" : "ALLOWED"}   base ${before} -> ${after}` +
+      `${before === after ? "  (unchanged)" : ""}`);
+    if (guardLog) console.log(`    ${guardLog}`);
+    console.log(`    CU ${parsed?.meta?.computeUnitsConsumed ?? "?"}`);
+    console.log(`    ${link(sig)}`);
+
+    return {
+      outcome: errored ? "blocked" : "allowed",
+      sig, before, after,
+      err: parsed?.meta?.err ?? null,
+      computeUnits: parsed?.meta?.computeUnitsConsumed ?? null,
+      explorer: link(sig),
+    };
   }
 
   const caseA = await attempt("CASE A: fill at the oracle price", oracle.price);

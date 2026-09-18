@@ -1,0 +1,37 @@
+{
+  "cluster": "devnet",
+  "programId": "DeAF1jFtXTweJnC8x1P5VkzYNcdiqC6EfGiz6uxhi8ig",
+  "priceAccount": "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE",
+  "feed": "Crypto.SOL/USD (devnet shard 0)",
+  "baseMint": "4AicvUDdc1bkDUQ77zMDs6y2m1bRfCN4Z4CtmbNeT1rv",
+  "quoteMint": "D52eyUCRpACUFuxwmFYHkjmswGJdKEyZp34cQBfx7Kwm",
+  "config": "8TAzmCAtmtBf7h4rjijXYQsQzKTQwWaqNjxF8z76WKtX",
+  "market": "GJRaxUEcWBYSoT8EzAqPD2ryQbLnXGDAL69qumxU7CLH",
+  "oracle": 112.30270803,
+  "caseA": {
+    "outcome": "allowed",
+    "sig": "5KK2pPnAks22g3tPJHYdAhtuhJbwFbk7FKWFVwLiJmGi8VxWwJWSy8fjw23MFWQ3WGp3q3tiA2sQqzyDBndobYy9",
+    "before": "1000000000",
+    "after": "1100000000",
+    "err": null,
+    "computeUnits": 36102,
+    "explorer": "https://solscan.io/tx/5KK2pPnAks22g3tPJHYdAhtuhJbwFbk7FKWFVwLiJmGi8VxWwJWSy8fjw23MFWQ3WGp3q3tiA2sQqzyDBndobYy9?cluster=devnet"
+  },
+  "caseB": {
+    "outcome": "blocked",
+    "sig": "2VKxFk8Lnim9pe59pev9NNhyYk3TrRQ7ZyrF5amiCqKR5yUbZ2woLS5KcGXmMrwjqrQxBN44oeGyLAA6e4T9wjS6",
+    "before": "1100000000",
+    "after": "1100000000",
+    "err": {
+      "InstructionError": [
+        4,
+        {
+          "Custom": 6000
+        }
+      ]
+    },
+    "computeUnits": 36769,
+    "explorer": "https://solscan.io/tx/2VKxFk8Lnim9pe59pev9NNhyYk3TrRQ7ZyrF5amiCqKR5yUbZ2woLS5KcGXmMrwjqrQxBN44oeGyLAA6e4T9wjS6?cluster=devnet"
+  },
+  "capturedAt": "2026-09-18T19:00:11.761Z"
+}

@@ -68,6 +68,33 @@ its own.
 | Full guarded fill | ~33,000 CU |
 | Test suite | 6 cases, all passing |
 
+### Live on devnet — click the rejection
+
+Program [`DeAF1jFtXTweJnC8x1P5VkzYNcdiqC6EfGiz6uxhi8ig`](https://solscan.io/account/DeAF1jFtXTweJnC8x1P5VkzYNcdiqC6EfGiz6uxhi8ig?cluster=devnet)
+
+| | fill | guard | on-chain |
+|---|---|---|---|
+| at the oracle price | 0 bp | allowed | [tx](https://solscan.io/tx/5KK2pPnAks22g3tPJHYdAhtuhJbwFbk7FKWFVwLiJmGi8VxWwJWSy8fjw23MFWQ3WGp3q3tiA2sQqzyDBndobYy9?cluster=devnet) |
+| **6.8% above oracle** | 679 bp | **rejected** | [**tx**](https://solscan.io/tx/2VKxFk8Lnim9pe59pev9NNhyYk3TrRQ7ZyrF5amiCqKR5yUbZ2woLS5KcGXmMrwjqrQxBN44oeGyLAA6e4T9wjS6?cluster=devnet) |
+
+The rejected transaction carries the guard's own reasoning in its logs:
+
+```
+fill: BUY base_delta=100000000 quote_delta=119939292
+      realised=1199392920000 expected=1123027080300
+      deviation=679bps band=301bps
+```
+
+`Custom: 6000` is `OutsideBand`. The two token transfers ahead of `verify_fill` had already
+executed, and the buyer's balance is **unchanged at 1100000000** — the whole transaction
+rolled back. Whole guarded fill costs ~36,800 CU.
+
+The 301 bp band is 200 bp closed-market, plus 1 bp confidence widening, plus 100 bp because
+no basis had been pushed for this market — the ageing path widening the band rather than
+assuming the centre is exact.
+
+### Running the tests
+
 ```bash
 anchor build && npx tsx tests/guarded-fill.ts   # needs a local validator, see below
 ```
@@ -87,9 +114,9 @@ solana-test-validator --url https://api.mainnet-beta.solana.com \
 
 ## Honest limits
 
-- **Not yet deployed to a public cluster.** Devnet airdrops are rate-limited on every
-  endpoint tried, so there is no clickable transaction yet. `scripts/deploy-devnet.ts` is
-  written and ready; it needs a funded wallet.
+- **Deployed to devnet, not mainnet.** The enforcement path is real and publicly
+  verifiable, but against test mints and a crypto reference feed rather than a live xStock
+  market.
 - **The basis is keeper-supplied**, because the source feeds are not maintained on-chain:
   `Crypto.*X/USD` was 5.8 days stale and `Crypto.*X/*.RR` ~59 days stale, shard 0 only. It
   is bounded in-program rather than trusted — a 300 bp ceiling against measured values of
