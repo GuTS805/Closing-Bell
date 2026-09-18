@@ -1,17 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["300", "400", "500"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
@@ -32,28 +41,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${newsreader.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
-        <header className="sticky top-0 z-50 border-b border-neutral-900 bg-neutral-950/90 backdrop-blur">
-          <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-            <Link href="/" className="flex items-center gap-2">
+      <body className="min-h-full flex flex-col">
+        <header className="sticky top-0 z-50 border-b border-rule bg-ground/95 backdrop-blur">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3.5">
+            <Link href="/" className="flex items-center gap-2.5">
               <Image
                 src="/nav-logo.png"
                 alt=""
-                width={22}
-                height={22}
-                className="rounded-[5px]"
+                width={20}
+                height={20}
+                className="rounded-[4px]"
                 priority
               />
-              <span className="text-sm font-semibold tracking-tight">Closing Bell</span>
+              <span className="font-display text-[17px] leading-none tracking-tight text-ink">
+                Closing Bell
+              </span>
             </Link>
-            <nav className="flex gap-1">
+            <nav className="flex items-center gap-5 text-[13px]">
               {NAV.map((n) => (
                 <Link
                   key={n.href}
                   href={n.href}
-                  className="rounded-md px-2.5 py-1 text-xs text-neutral-400 transition hover:bg-neutral-900 hover:text-neutral-100"
+                  className="text-ink-dim transition-colors hover:text-ink"
                 >
                   {n.label}
                 </Link>
