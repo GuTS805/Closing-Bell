@@ -5,24 +5,46 @@ On-chain oracle-banded execution guard for tokenized equities on Solana.
 Every fill is checked on-chain against the live Pyth price before it is allowed to
 execute, with a wider band and a higher fee while the reference market is shut.
 
-**Status: day 0.** The oracle half of the feasibility test passes; the swap-CPI half is
-not yet run. See [docs/day0-findings.md](docs/day0-findings.md) for measured results and
-for the several places where day-0 evidence contradicts the original architecture
-document.
+**Status: day 0 complete.** Band enforcement works end to end on a local validator with
+mainnet oracle data. See [docs/day0-findings.md](docs/day0-findings.md) for every measured
+result, including the several places where day-0 evidence contradicts the original
+architecture document.
 
-## Day-0 result in one line
+## How it works
 
-The Pyth read plus band derivation costs **3,369 CU** (2,970 + 399), about 1.4% of the
-250k budget, leaving ~242k CU for the swap CPI.
+The guard does not route your swap. It brackets it inside one transaction:
+
+```
+ix 0   record_pre_state    snapshot balances + oracle price + band
+ix 1   any swap            Jupiter, unmodified, real routing, any venue
+ix 2   verify_fill         balance deltas -> realised price -> band check -> revert
+```
+
+Solana's atomicity does the enforcement. The guard never moves a token, so Token-2022
+extensions cannot affect it, and it inherits real aggregated liquidity rather than
+requiring a pool of its own.
+
+## Day-0 results
+
+| | |
+|---|---|
+| Pyth read + band derivation | 3,369 CU |
+| Full guarded fill (both guard ix + 2 transfers) | 24,767 CU |
+| Fill at oracle price | allowed |
+| Fill 6.8% above oracle | **reverted**, balances rolled back |
+| Fill 1.5% above oracle (inside a 200bp closed band) | allowed |
 
 ## Layout
 
 ```
-programs/closing-bell-guard/   Anchor program (currently the feasibility probe)
+programs/closing-bell-guard/   Anchor program: probe_oracle, record_pre_state, verify_fill
 scripts/probe-pyth-accounts.ts Pyth on-chain account + staleness probe
-scripts/day0-feasibility.ts    The section 12 test
-docs/day0-findings.md          Measured day-0 results
-keeper/  app/  replay/         Not started
+scripts/day0-feasibility.ts    Section 12 CU measurement
+tests/guarded-fill.ts          Band enforcement: allowed / reverted / inside-band
+replay/depth-at-size.ts        Off-hours depth across notional tiers and thin names
+replay/basis.ts                Equity vs xStock vs RR feed comparison
+replay/feed-staleness.ts       Which feeds have a usable on-chain account
+keeper/  app/                  Not started
 ```
 
 ## Prerequisites

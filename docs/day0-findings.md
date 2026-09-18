@@ -93,9 +93,12 @@ Consequences for the architecture document:
 - **Section 16 row 1 ("Token-2022 transfer hook breaks the swap CPI", Critical) is largely
   void.** There is no hook program to invoke and no extra accounts to resolve. Pivots
   A/B/C were sized against a risk that is currently inert.
-- **Section 7.1's ScaledUiAmount row is wrong** for these mints - the extension is not
-  present, decimals are a plain 8. The Section 9.2 requirement to apply a multiplier
-  everywhere is unnecessary work. The AAPLx ~ 1.00266 figure has no on-chain basis today.
+- **Section 7.1's ScaledUiAmount row names the wrong mechanism, but its number is real.**
+  The extension is not present and decimals are a plain 8, so Section 9.2's multiplier work
+  is unnecessary. However the "AAPLx ~ 1.00266" figure is exactly the value of the Pyth
+  feed `Crypto.AAPLX/AAPL.RR` - a redemption ratio, not a UI scaling factor. An earlier
+  draft of this document claimed the figure had no on-chain basis; that was wrong. See
+  section 10.
 - **Section 7.1's zero-transfer-fee requirement is satisfied** - no `TransferFeeConfig`.
 - **Permanent delegate confirmed**, so the Section 7.1 disclosure obligation stands. Add
   freeze authority and a **Confidential transfer** extension (undocumented in the
@@ -281,3 +284,101 @@ Two limits on how far this can be leaned on:
 - It applies to **TSVs** seeking exemption from exchange registration. xStocks as they
   trade today are not obviously TSVs under this order, and a hackathon project is not one
   either.
+
+---
+
+## 10. There are three feed families, and the xStock ones are not maintained
+
+Pyth publishes three related feeds per tokenized equity. The Pyth track explicitly invites
+using one, comparing both, or building a "price-comparison surface":
+
+| feed | what it is | freshest on-chain account |
+|---|---|---|
+| `Equity.US.<T>/USD` | the underlying equity | shard 1, **seconds old** |
+| `Crypto.<T>X/USD` | the xStock itself | shard 0 only, **5.8 days stale** |
+| `Crypto.<T>X/<T>.RR` | xStock priced in units of the underlying (the basis) | shard 0 only, **~59 days stale** |
+
+Measured 2026-09-18 04:00 ET:
+
+| ticker | RR value | implied basis |
+|---|---|---|
+| SPY | 1.00571 | **+57 bp** |
+| QQQ | 1.00273 | +27 bp |
+| AAPL | 1.00266 | +27 bp |
+| GOOGL | 1.00193 | +19 bp |
+| NVDA | 1.00092 | +9 bp |
+| TSLA | 1.00000 | 0 bp |
+
+### This explains the SPYx anomaly
+
+Section 6 reported an unexplained standing ~70 bp premium on SPYx, flat across trade
+sizes. `Crypto.SPYX/SPY.RR` = 1.00571 says **+57 bp of it is structural basis** - the
+xStock trades at a persistent premium to the underlying because only authorized
+participants can arbitrage redemption 1:1; retail cannot. The remaining ~13 bp is route
+cost. It was never a stale pool.
+
+### Why this is a correctness issue, not trivia
+
+A band centered on `Equity.US.<T>/USD` is centered on the wrong price. For SPYx it would
+sit 57 bp away from where the asset actually trades and **systematically block one side of
+every trade** while waving through the other. That is a real bug, and it would have
+shipped.
+
+The band must be centered on the xStock's own value. But **the xStock feeds cannot carry
+that on-chain today** - 5.8 days and ~59 days stale respectively, shard 0 only. So the
+basis is a keeper-maintained `basis_bps` on the market account, updated on the same
+machinery that pushes prices, and disclosed as such. `PendingFill.basis_bps` carries it.
+
+Coverage does not improve: PLTRx, GMEx and KOx have no feed in *any* of the three
+families. Oracle coverage remains the binding constraint on which tickers are supportable.
+
+---
+
+## 11. Architecture change: bracket the swap, do not route it
+
+The guard no longer CPIs into a venue. It brackets an unmodified swap inside one
+transaction:
+
+```
+ix 0   record_pre_state    snapshot balances + oracle price + band into a PDA
+ix 1   any swap            Jupiter, unmodified, real routing, any venue
+ix 2   verify_fill         balance deltas -> realised price -> band check -> revert
+```
+
+Solana's atomicity does the enforcement. This removes the entire class of problems day 0
+surfaced:
+
+- **No CPI to prove.** The unproven cost of a Raydium CLMM or Meteora swap CPI with a
+  Token-2022 input is not paid at all.
+- **Token-2022 extensions become irrelevant.** The guard never moves a token, so transfer
+  hooks, permanent delegate and confidential transfer cannot affect it.
+- **Real liquidity, no bootstrapping.** It inherits Jupiter's routing across Raydium CLMM
+  and Byreal instead of seeding a pool where you are the only LP.
+- **The quote-vs-base incoherence in section 5 dissolves.** The guard protects AAPLx/USDC
+  trades wherever they route; a Meteora DBC launch becomes a genuinely optional side
+  artifact rather than an architectural contortion.
+
+### Measured, on a validator with the mainnet Pyth account cloned
+
+`npx tsx tests/guarded-fill.ts`, oracle at 336.5713, closed-market band 200 bp:
+
+| case | fill price | deviation | outcome |
+|---|---|---|---|
+| A | at oracle | 0 bp | allowed, **24,767 CU** total |
+| B | +6.8% | 680 bp | **REVERTED**, `OutsideBand` |
+| C | +1.5% | 149 bp | allowed, 24,896 CU |
+
+Case B is the one that matters: the two token transfers ahead of `verify_fill` had already
+executed, and the user's base balance was **unchanged** afterwards
+(`100000000 -> 100000000`). The whole transaction rolled back.
+
+Whole-transaction cost including both guard instructions and two token transfers is under
+25k CU; `verify_fill` itself is ~3,988 CU.
+
+### The honest limitation
+
+This binds only users whose transaction includes the two instructions. You build the
+transaction in the app, so it holds for your own users by construction; for the "protocol
+others integrate" story, you are offering an instruction others append - a cleaner
+integration surface than asking them to reroute swaps through you, but it is not, and
+should not be claimed as, protection for a pool as a whole.

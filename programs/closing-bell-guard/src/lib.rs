@@ -125,11 +125,283 @@ pub mod closing_bell_guard {
 
         Ok(())
     }
+
+    /// Instruction 0 of the guarded-fill sandwich. Snapshots balances and the oracle band.
+    ///
+    /// The guard does not route the swap. It brackets it:
+    ///
+    ///   ix 0  record_pre_state   snapshot balances + oracle price
+    ///   ix 1  any swap           Jupiter, unmodified, real routing, any venue
+    ///   ix 2  verify_fill        balance deltas -> realised price -> band check
+    ///
+    /// Solana's atomicity does the enforcement: if `verify_fill` errors, the swap in ix 1
+    /// reverts with it. The guard never moves a token, so Token-2022 extensions
+    /// (transfer hooks, permanent delegate, confidential transfer) are irrelevant to it,
+    /// and it inherits real aggregated liquidity instead of bootstrapping a pool.
+    pub fn record_pre_state(
+        ctx: Context<RecordPreState>,
+        feed_id_hex: String,
+        max_staleness_secs: u64,
+        market_open: bool,
+        basis_bps: i64,
+        base_decimals: u8,
+        quote_decimals: u8,
+    ) -> Result<()> {
+        let feed_id = get_feed_id_from_hex(&feed_id_hex)?;
+        let clock = Clock::get()?;
+
+        let price = ctx
+            .accounts
+            .price_update
+            .get_price_no_older_than(&clock, max_staleness_secs, &feed_id)
+            .map_err(|_| error!(GuardError::StaleOracle))?;
+
+        let abs_price = price.price.unsigned_abs();
+        require!(abs_price > 0, GuardError::StaleOracle);
+
+        let conf_ratio_bps = (price.conf as u128)
+            .checked_mul(10_000)
+            .and_then(|v| v.checked_div(abs_price as u128))
+            .ok_or(GuardError::MathOverflow)? as u64;
+        require!(conf_ratio_bps <= MAX_CONF_RATIO_BPS, GuardError::LowConfidence);
+
+        let base = if market_open { BASE_BAND_BPS } else { CLOSED_BAND_BPS };
+        let band_bps = base
+            .checked_add(conf_ratio_bps.saturating_mul(CONF_MULTIPLIER_BPS) / 10_000)
+            .ok_or(GuardError::MathOverflow)?;
+
+        let p = &mut ctx.accounts.pending;
+        p.user = ctx.accounts.user.key();
+        p.base_mint = Pubkey::default();
+        p.quote_mint = Pubkey::default();
+        p.base_before = token_amount(&ctx.accounts.base_token_account)?;
+        p.quote_before = token_amount(&ctx.accounts.quote_token_account)?;
+        p.oracle_price = price.price;
+        p.oracle_expo = price.exponent;
+        p.base_decimals = base_decimals;
+        p.quote_decimals = quote_decimals;
+        p.band_bps = band_bps;
+        p.basis_bps = basis_bps;
+        p.slot = clock.slot;
+        p.bump = ctx.bumps.pending;
+
+        msg!(
+            "pre: base={} quote={} oracle={} expo={} band={}bps basis={}bps",
+            p.base_before,
+            p.quote_before,
+            p.oracle_price,
+            p.oracle_expo,
+            p.band_bps,
+            p.basis_bps
+        );
+        Ok(())
+    }
+
+    /// Instruction 2 of the guarded-fill sandwich. Reverts the transaction if the fill
+    /// that happened in between executed outside the band.
+    pub fn verify_fill(ctx: Context<VerifyFill>) -> Result<()> {
+        msg!("CU at verify entry:");
+        sol_log_compute_units();
+
+        let p = &ctx.accounts.pending;
+        let clock = Clock::get()?;
+        // Must be the same transaction, not a snapshot replayed later.
+        require!(clock.slot == p.slot, GuardError::StaleSnapshot);
+
+        let base_after = token_amount(&ctx.accounts.base_token_account)?;
+        let quote_after = token_amount(&ctx.accounts.quote_token_account)?;
+
+        // Buy direction: base increased, quote decreased.
+        let base_delta = base_after
+            .checked_sub(p.base_before)
+            .ok_or(GuardError::NoFillDetected)?;
+        let quote_delta = p
+            .quote_before
+            .checked_sub(quote_after)
+            .ok_or(GuardError::NoFillDetected)?;
+        require!(base_delta > 0 && quote_delta > 0, GuardError::NoFillDetected);
+
+        // Realised price in quote-raw-units per base-raw-unit, scaled by 1e12.
+        const SCALE_EXP: u32 = 12;
+        let realised = (quote_delta as u128)
+            .checked_mul(pow10(SCALE_EXP)?)
+            .ok_or(GuardError::MathOverflow)?
+            .checked_div(base_delta as u128)
+            .ok_or(GuardError::MathOverflow)?;
+
+        // Oracle price in the same units:
+        //   price * 10^expo  (USD per whole base)
+        //     * 10^quote_decimals / 10^base_decimals   (to raw units)
+        //     * 10^SCALE_EXP
+        let net = p.oracle_expo
+            + p.quote_decimals as i32
+            - p.base_decimals as i32
+            + SCALE_EXP as i32;
+        let oracle_raw = p.oracle_price.unsigned_abs() as u128;
+        let mut expected = if net >= 0 {
+            oracle_raw
+                .checked_mul(pow10(net as u32)?)
+                .ok_or(GuardError::MathOverflow)?
+        } else {
+            oracle_raw
+                .checked_div(pow10((-net) as u32)?)
+                .ok_or(GuardError::MathOverflow)?
+        };
+
+        // Recenter on what the tokenized asset is worth, not the underlying.
+        if p.basis_bps != 0 {
+            let adj = 10_000i128
+                .checked_add(p.basis_bps as i128)
+                .ok_or(GuardError::MathOverflow)?;
+            require!(adj > 0, GuardError::MathOverflow);
+            expected = expected
+                .checked_mul(adj as u128)
+                .ok_or(GuardError::MathOverflow)?
+                / 10_000u128;
+        }
+        require!(expected > 0, GuardError::MathOverflow);
+
+        let diff = realised.abs_diff(expected);
+        let deviation_bps = diff
+            .checked_mul(10_000)
+            .ok_or(GuardError::MathOverflow)?
+            / expected;
+
+        msg!(
+            "fill: base_delta={} quote_delta={} realised={} expected={} deviation={}bps band={}bps",
+            base_delta,
+            quote_delta,
+            realised,
+            expected,
+            deviation_bps,
+            p.band_bps
+        );
+
+        msg!("CU after verify:");
+        sol_log_compute_units();
+
+        require!(
+            deviation_bps <= p.band_bps as u128,
+            GuardError::OutsideBand
+        );
+
+        emit!(FillVerified {
+            user: p.user,
+            base_delta,
+            quote_delta,
+            deviation_bps: deviation_bps as u64,
+            band_bps: p.band_bps,
+            basis_bps: p.basis_bps,
+        });
+        Ok(())
+    }
 }
+
+/// Snapshot taken before the swap, consumed by `verify_fill` in the same transaction.
+#[account]
+pub struct PendingFill {
+    pub user: Pubkey,
+    /// Token being acquired (the tokenized equity).
+    pub base_mint: Pubkey,
+    /// Token being spent (USDC).
+    pub quote_mint: Pubkey,
+    pub base_before: u64,
+    pub quote_before: u64,
+    pub oracle_price: i64,
+    pub oracle_expo: i32,
+    pub base_decimals: u8,
+    pub quote_decimals: u8,
+    /// Allowed deviation, already widened for confidence and market state.
+    pub band_bps: u64,
+    /// Keeper-supplied xStock premium over the underlying equity, in bps.
+    ///
+    /// The band must be centered on what the tokenized asset is actually worth, not on
+    /// the underlying. Measured 2026-09-18: SPYx carries a +57 bp structural premium
+    /// (`Crypto.SPYX/SPY.RR` = 1.00571) because only authorized participants can arbitrage
+    /// redemption 1:1. Centering on the equity feed would systematically block one side of
+    /// every SPYx trade.
+    ///
+    /// This is supplied by the keeper rather than read on-chain because the xStock feeds
+    /// are not maintained: `Crypto.*X/USD` was 5.8 days stale and `Crypto.*X/*.RR` ~59 days
+    /// stale, on shard 0 only. See docs/day0-findings.md.
+    pub basis_bps: i64,
+    pub slot: u64,
+    pub bump: u8,
+}
+
+impl PendingFill {
+    pub const LEN: usize = 8 + 32 * 3 + 8 * 2 + 8 + 4 + 1 + 1 + 8 + 8 + 8 + 1;
+}
+
+/// Reads the `amount` field of an SPL Token or Token-2022 token account.
+///
+/// Both programs share the same first 72 bytes (mint, owner, amount), and Token-2022
+/// extensions are appended after the base layout, so this is valid for either. Parsing
+/// directly avoids taking an `anchor-spl` dependency, which in this toolchain is another
+/// version-resolution hazard for no gain — nothing here needs to move tokens.
+fn token_amount(acc: &AccountInfo) -> Result<u64> {
+    require!(
+        acc.owner == &TOKEN_PROGRAM_ID || acc.owner == &TOKEN_2022_PROGRAM_ID,
+        GuardError::NotATokenAccount
+    );
+    let data = acc.try_borrow_data()?;
+    require!(data.len() >= 72, GuardError::NotATokenAccount);
+    Ok(u64::from_le_bytes(
+        data[64..72].try_into().map_err(|_| error!(GuardError::NotATokenAccount))?,
+    ))
+}
+
+/// `10^exp` as u128, for the decimal reconciliation in `verify_fill`.
+fn pow10(exp: u32) -> Result<u128> {
+    10u128.checked_pow(exp).ok_or(error!(GuardError::MathOverflow))
+}
+
+pub const TOKEN_PROGRAM_ID: Pubkey =
+    solana_program::pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+pub const TOKEN_2022_PROGRAM_ID: Pubkey =
+    solana_program::pubkey!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 
 #[derive(Accounts)]
 pub struct ProbeOracle<'info> {
     pub price_update: Account<'info, PriceUpdateV2>,
+}
+
+#[derive(Accounts)]
+pub struct RecordPreState<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = PendingFill::LEN,
+        seeds = [b"pending", user.key().as_ref(), base_token_account.key().as_ref()],
+        bump
+    )]
+    pub pending: Account<'info, PendingFill>,
+    pub price_update: Account<'info, PriceUpdateV2>,
+    /// CHECK: parsed as a token account; ownership is asserted in `token_amount`.
+    pub base_token_account: AccountInfo<'info>,
+    /// CHECK: parsed as a token account; ownership is asserted in `token_amount`.
+    pub quote_token_account: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct VerifyFill<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        close = user,
+        has_one = user,
+        seeds = [b"pending", user.key().as_ref(), base_token_account.key().as_ref()],
+        bump = pending.bump
+    )]
+    pub pending: Account<'info, PendingFill>,
+    /// CHECK: parsed as a token account; ownership is asserted in `token_amount`.
+    pub base_token_account: AccountInfo<'info>,
+    /// CHECK: parsed as a token account; ownership is asserted in `token_amount`.
+    pub quote_token_account: AccountInfo<'info>,
 }
 
 #[event]
@@ -141,6 +413,16 @@ pub struct BandDerived {
     pub conf_ratio_bps: u64,
     pub band_bps: u64,
     pub market_open: bool,
+}
+
+#[event]
+pub struct FillVerified {
+    pub user: Pubkey,
+    pub base_delta: u64,
+    pub quote_delta: u64,
+    pub deviation_bps: u64,
+    pub band_bps: u64,
+    pub basis_bps: i64,
 }
 
 #[error_code]
@@ -159,4 +441,12 @@ pub enum GuardError {
     LowConfidence,
     #[msg("Pool does not match registered market")]
     PoolMismatch,
+    #[msg("Account is not an SPL Token or Token-2022 token account")]
+    NotATokenAccount,
+    #[msg("Arithmetic overflow")]
+    MathOverflow,
+    #[msg("Snapshot is from an earlier slot; record and verify must share a transaction")]
+    StaleSnapshot,
+    #[msg("No fill detected between snapshot and verification")]
+    NoFillDetected,
 }
