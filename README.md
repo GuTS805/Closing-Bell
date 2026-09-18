@@ -1,18 +1,56 @@
 # Closing Bell
 
-On-chain oracle-banded execution guard for tokenized equities on Solana.
+**The true cost of a tokenized stock trade is pool impact plus a wrapper premium, and only
+one of the two is shown anywhere.**
 
-Every fill is checked on-chain against the live Pyth price before it is allowed to
-execute, with a wider band and a higher fee while the reference market is shut.
+![True cost breakdown](docs/img/truecost.png)
 
-**Status: day 0 complete.** Band enforcement works end to end on a local validator with
-mainnet oracle data. See [docs/day0-findings.md](docs/day0-findings.md) for every measured
-result, including the several places where day-0 evidence contradicts the original
-architecture document.
+## The finding
 
-## How it works
+Every xStock trades at a structural premium to the equity it wraps, because only
+authorized participants can arbitrage redemption 1:1 and retail cannot. Pyth publishes the
+ratio, but nothing on Solana applies it to a quote.
 
-The guard does not route your swap. It brackets it inside one transaction:
+Measured 2026-09-18 against mainnet. The pool mid is isolated by quoting both directions at
+the same notional, which cancels the spread: `mid = (buy_dev + sell_dev) / 2`.
+
+| ticker | pool mid vs equity | Pyth published ratio | diff | spread |
+|---|---|---|---|---|
+| SPY | **+60 bp** | +57 bp | +3 | 3 bp |
+| TSLA | **+2 bp** | 0 bp | +2 | 10 bp |
+| NVDA | +19 bp | +9 bp | +9 | 10 bp |
+| AAPL | +35 bp | +27 bp | +9 | 43 bp |
+| GOOGL | +7 bp | +19 bp | −12 | 49 bp |
+
+**Correlation 0.931 over n=5.** The discriminator is TSLA against SPY: TSLA's published
+ratio is 1.00000 and its pool mid is +2 bp; SPY's is 1.00571 and its mid is +60 bp. A
+feed-construction artifact would offset both alike. The premium is in the price people
+actually trade at.
+
+Jupiter measures impact against the pool's own mid, so the premium never appears in a
+quote. A $50,000 SPYx buy shows **+0.06% impact** and costs **+0.58% against SPY** — the
+invisible term is roughly ten times the visible one, and unlike impact it is present at
+every size, including one share.
+
+Reproduce: `npx tsx replay/pool-vs-equity.ts`
+
+## The product
+
+A page that prices the trade you are actually doing, against the asset you think you are
+buying. Live mainnet data — Jupiter for pool prices, Pyth shard 1 read directly on-chain
+for equity prices.
+
+```bash
+cd app && npm install && npm run dev
+```
+
+## The program
+
+Showing the number is enough for a human reading a quote. Agents, DCA bots, treasury
+execution and liquidations against stock collateral never read one, so the band has to be
+enforced where the trade settles.
+
+The guard does not route swaps. It brackets one inside a single transaction:
 
 ```
 ix 0   record_pre_state    snapshot balances + oracle price + band
@@ -20,68 +58,70 @@ ix 1   any swap            Jupiter, unmodified, real routing, any venue
 ix 2   verify_fill         balance deltas -> realised price -> band check -> revert
 ```
 
-Solana's atomicity does the enforcement. The guard never moves a token, so Token-2022
-extensions cannot affect it, and it inherits real aggregated liquidity rather than
-requiring a pool of its own.
-
-## Day-0 results
+Atomicity does the enforcement. The guard never moves a token, so Token-2022 extensions
+cannot affect it, and it inherits real aggregated liquidity rather than needing a pool of
+its own.
 
 | | |
 |---|---|
 | Pyth read + band derivation | 3,369 CU |
-| Full guarded fill (both guard ix + 2 transfers) | 24,767 CU |
-| Fill at oracle price | allowed |
-| Fill 6.8% above oracle | **reverted**, balances rolled back |
-| Fill 1.5% above oracle (inside a 200bp closed band) | allowed |
+| Full guarded fill | ~33,000 CU |
+| Test suite | 6 cases, all passing |
+
+```bash
+anchor build && npx tsx tests/guarded-fill.ts   # needs a local validator, see below
+```
+
+Cases: fill at oracle (allowed), 6.8% above (reverts, balances roll back), 1.5% above
+(allowed inside band), sell 6.8% below (reverts — the band is symmetric), snapshot with no
+swap (`NoFillDetected`, not a divide-by-zero), keeper basis above the ceiling
+(`BasisOutOfBounds`).
+
+The local validator needs the mainnet Pyth account cloned in:
+
+```bash
+solana-test-validator --url https://api.mainnet-beta.solana.com \
+  --clone D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW \
+  --bpf-program <PROGRAM_ID> target/deploy/closing_bell_guard.so --reset
+```
+
+## Honest limits
+
+- **Not yet deployed to a public cluster.** Devnet airdrops are rate-limited on every
+  endpoint tried, so there is no clickable transaction yet. `scripts/deploy-devnet.ts` is
+  written and ready; it needs a funded wallet.
+- **The basis is keeper-supplied**, because the source feeds are not maintained on-chain:
+  `Crypto.*X/USD` was 5.8 days stale and `Crypto.*X/*.RR` ~59 days stale, shard 0 only. It
+  is bounded in-program rather than trusted — a 300 bp ceiling against measured values of
+  57 bp and 27 bp, a 10 bp/min drift limit, and ageing out after an hour with the band
+  widened rather than the centre silently assumed exact.
+- **Devnet has no live equity feed** (`Equity.US.AAPL/USD` was 78 days stale there), so the
+  devnet demo bands against `Crypto.SOL/USD`. The mechanism is identical; only the
+  reference asset differs. Note devnet's fresh shard is 0, the inverse of mainnet.
+- **Devnet test mints** reproduce the xStock extensions that matter — permanent delegate
+  and freeze authority. The transfer hook is omitted because on mainnet every xStock
+  carries it *disabled*.
+- **The off-hours thesis did not survive measurement.** A session-hours comparison found no
+  off-hours penalty; several names are worse mid-session. The dislocation at size is a
+  thin-AMM property that holds around the clock. See `docs/day0-findings.md` section 12.
+- **The guard binds only transactions that include its two instructions.** For your own
+  users that holds by construction; as a protocol others integrate, it is an instruction
+  they append, not protection for a pool as a whole.
+
+Full measured record, including where evidence contradicted the original design:
+[docs/day0-findings.md](docs/day0-findings.md).
 
 ## Layout
 
 ```
-programs/closing-bell-guard/   Anchor program: probe_oracle, record_pre_state, verify_fill
-scripts/probe-pyth-accounts.ts Pyth on-chain account + staleness probe
-scripts/day0-feasibility.ts    Section 12 CU measurement
-tests/guarded-fill.ts          Band enforcement: allowed / reverted / inside-band
-replay/depth-at-size.ts        Off-hours depth across notional tiers and thin names
-replay/basis.ts                Equity vs xStock vs RR feed comparison
-replay/feed-staleness.ts       Which feeds have a usable on-chain account
-keeper/  app/                  Not started
+programs/closing-bell-guard/   Anchor program: config, market, clock, record/verify
+app/                           Next.js true-cost frontend
+scripts/deploy-devnet.ts       Devnet setup + the blocked-fill transaction
+tests/guarded-fill.ts          Six enforcement cases
+replay/pool-vs-equity.ts       The basis measurement above
+replay/depth-at-size.ts        Depth across notional tiers and thin names
+keeper/sample-feed-freshness.ts  Is the Pyth push path needed at all?
 ```
 
-## Prerequisites
-
-Built and run from WSL2 (Ubuntu 24.04). Anchor 0.31.1 does not build this project - see
-the toolchain notes in the findings doc.
-
-```
-anchor-cli 1.2.0   solana-cli 4.1.2   node 20
-```
-
-## Running
-
-```bash
-npm install
-
-# Which on-chain Pyth accounts exist, and how stale is each?
-npm run probe:pyth
-
-# Section 12: build, start a validator with the mainnet Pyth account cloned in,
-# deploy, invoke, and report compute units.
-anchor build
-npm run day0
-```
-
-`npm run day0` expects a local validator started with the Pyth account cloned:
-
-```bash
-solana-test-validator \
-  --url https://api.mainnet-beta.solana.com \
-  --clone D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW \
-  --bpf-program <PROGRAM_ID> target/deploy/closing_bell_guard.so \
-  --reset
-```
-
-## Known blockers
-
-- No mainnet SOL, so the mainnet leg of the feasibility test has not run.
-- Pyth Hermes now returns 401 without a key; the keeper needs Pyth Pro access.
-- Public RPC rate-limits; a Helius or Triton endpoint is needed before the keeper runs.
+Built with Anchor 1.2.0, solana-cli 4.1.2, pyth-solana-receiver-sdk 2.0.0, under WSL2.
+Anchor 0.31.1 cannot build this — see the toolchain notes in the findings doc.

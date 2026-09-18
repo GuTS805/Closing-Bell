@@ -9,3 +9,6 @@ test-ledger/
 **/*.rs.bk
 keypairs/
 *.log
+.playwright-mcp/
+app/node_modules/
+app/.next/

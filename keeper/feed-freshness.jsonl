@@ -4,3 +4,6 @@
 {"t":1789747776,"ticker":"AAPL","shard":1,"age":4,"price":334.76842,"conf":0.01842}
 {"t":1789747957,"ticker":"AAPL","shard":1,"age":7,"price":334.71999999999997,"conf":0.015}
 {"t":1789748138,"ticker":"AAPL","shard":1,"age":14,"price":334.65126,"conf":0.03874}
+{"t":1789748319,"ticker":"AAPL","shard":1,"age":3,"price":334.71997,"conf":0.019969999999999998}
+{"t":1789748501,"ticker":"AAPL","shard":1,"age":5,"price":334.66382,"conf":0.013819999999999999}
+{"t":1789748682,"ticker":"AAPL","shard":1,"age":7,"price":334.41501999999997,"conf":0.02498}
