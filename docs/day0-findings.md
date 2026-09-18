@@ -510,3 +510,93 @@ program rather than a dashboard.
   that way.
 - METAx (+50 bp) and AMZNx (-25 bp) have no RR feed. AMZNx's negative mid comes with a
   52 bp spread, so that number is noise rather than a discount.
+
+---
+
+## 14. The mechanism: tested, narrowed, unresolved
+
+Two experiments, run 2026-09-18. Both are reproducible from this repo.
+
+### Experiment 1 — SPY ex-dividend: null result
+
+SPY's ex-dividend date fell inside the build window, with a projected dividend of
+$1.8083-1.9987. Against a live spot of $759.13 that predicts a **23.8-26.3 bp** step.
+
+Direction matters and is easy to get backwards. Ex-dividend takes effect at the **open**:
+
+- An **accumulating** wrapper should see the premium **widen** by ~25 bp, because the
+  equity leg drops by the dividend and the token retains the claim.
+- A **distributing** wrapper should see **no change**, because both legs drop together.
+- A **decline** is predicted by neither.
+
+Measured, like-for-like across the open (buy side, $1k):
+
+| time | SPY premium |
+|---|---|
+| 03:50 ET — pre-open | **70.5 bp** |
+| 11:59 ET — post-open | **65.1 bp** |
+| 12:11 ET | 60.5 bp (mid) |
+| 15:07 ET | 53.1 bp (mid) |
+
+**−5.4 bp across the open, against an expected magnitude of ~25 bp in either direction.**
+SPY's bid-ask is 3 bp, so the mid is precise to a few bp and a 25 bp step would have been
+unmissable. There is no step — only a slow intraday drift consistent with ordinary flow.
+
+**The ex-dividend hypothesis is not supported for this event.**
+
+### Experiment 2 — is it dividends, or is it size?
+
+If the premium were driven by demand, depth or wrapper maturity rather than dividends, a
+size variable should explain it better. All six tickers, verified yields:
+
+| tkr | AUM $m | liquidity $k | yield | RR bp | implied accrual |
+|---|---|---|---|---|---|
+| SPY | 72.9 | 7,343 | 0.98% | 57.1 | 7.0 mo |
+| QQQ | 60.8 | 1,808 | 0.40% | 27.3 | 8.2 mo |
+| AAPL | 51.9 | 656 | 0.32% | 26.6 | 10.0 mo |
+| GOOGL | 56.5 | 457 | 0.23% | 19.3 | 10.1 mo |
+| NVDA | 70.6 | 2,065 | 0.46% | **9.2** | **2.4 mo** |
+| TSLA | **83.6** | 1,345 | 0.00% | **0.0** | — |
+
+| correlation with RR | |
+|---|---|
+| dividend yield | **0.887** (0.986 excluding NVDA) |
+| liquidity | 0.780 |
+| AUM | **−0.235** |
+| supply | −0.732 |
+
+**Size and demand are falsified.** The decisive row is TSLA: the **largest AUM in the
+set**, healthy liquidity, and a premium of **exactly zero**. No size or demand variable
+predicts zero there; "pays no dividend" does. NVDA breaks the liquidity story as well —
+second-highest liquidity, fifth-highest premium — so it is an outlier under every variable
+tested rather than evidence for an alternative.
+
+### What remains unexplained
+
+- **NVDA.** Its yield is 0.46%, *higher* than AAPL (0.32%) and GOOGL (0.23%), so under any
+  common-window accrual model it should carry the **largest** premium of the three. It
+  carries the smallest. That inversion is unexplained.
+- **The implied window is ~7-10 months**, consistently, against xStocks launching roughly
+  14 months ago. If this were accrual-since-launch it should cluster at 14. It does not.
+- **No ex-dividend step**, where accrual predicts a clear one.
+
+### The honest position
+
+A persistent premium exists between every tokenized stock and its underlying. It orders by
+dividend yield and is exactly zero for the one ticker that pays no dividend. It is not
+explained by AUM, supply or liquidity. But it does not respond to an ex-dividend date, it
+does not fit accrual-since-launch, and NVDA inverts it.
+
+**The mechanism is unresolved. The premium is measured, reproducible, and invisible in
+every quote.** That is the claim the product rests on, and it does not depend on the
+mechanism.
+
+### A note on verification
+
+An earlier pass through this analysis used an estimated NVDA yield of ~0.02%/yr and
+concluded NVDA implied 55 months of accrual. The verified figure is 0.46%, which reverses
+the direction of the discrepancy entirely. A second pass used a fabricated Pyth feed id for
+GOOGL, which returned no price and silently corrupted the AUM correlation to −0.016. Both
+were caught by checking figures that carried weight against their sources. Any number in
+this document that drives a conclusion was verified; where a figure is an estimate it is
+labelled as one.

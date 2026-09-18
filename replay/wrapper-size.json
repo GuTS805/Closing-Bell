@@ -1,0 +1,74 @@
+[
+  {
+    "sym": "SPY",
+    "rr": 57.1,
+    "yieldBps": 98,
+    "liq": 7343371,
+    "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+    "feed": "19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
+    "price": 761.1099999999999,
+    "supply": 95775.95938511,
+    "aum": 72896040.44760107,
+    "impliedMonths": 6.9918367346938775
+  },
+  {
+    "sym": "QQQ",
+    "rr": 27.3,
+    "yieldBps": 40,
+    "liq": 1808058,
+    "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+    "feed": "9695e2b96ea7b3859da9ed25b7a46a920a776e2fdae19a7bcfdf2b219230452d",
+    "price": 719.2209999999999,
+    "supply": 84590.60924618,
+    "aum": 60839342.57264682,
+    "impliedMonths": 8.19
+  },
+  {
+    "sym": "AAPL",
+    "rr": 26.6,
+    "yieldBps": 32,
+    "liq": 655523,
+    "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+    "feed": "49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688",
+    "price": 336.14207999999996,
+    "supply": 154266.03640839,
+    "aum": 51855306.35167194,
+    "impliedMonths": 9.975000000000001
+  },
+  {
+    "sym": "GOOGL",
+    "rr": 19.3,
+    "yieldBps": 23,
+    "liq": 457374,
+    "mint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+    "feed": "5a48c03e9b9cb337801073ed9d166817473697efff0d138874e0f6a33d6d5aa6",
+    "price": 351.52,
+    "supply": 160787.94271941,
+    "aum": 56520177.624727,
+    "impliedMonths": 10.069565217391304
+  },
+  {
+    "sym": "NVDA",
+    "rr": 9.2,
+    "yieldBps": 46,
+    "liq": 2064716,
+    "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+    "feed": "b1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593",
+    "price": 219.46499999999997,
+    "supply": 321823.787587,
+    "aum": 70629057.54278095,
+    "impliedMonths": 2.4
+  },
+  {
+    "sym": "TSLA",
+    "rr": 0,
+    "yieldBps": 0,
+    "liq": 1344772,
+    "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+    "feed": "16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1",
+    "price": 364.01833,
+    "supply": 229636.89825876,
+    "aum": 83592040.21053372,
+    "impliedMonths": null
+  }
+]

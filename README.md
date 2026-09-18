@@ -32,6 +32,38 @@ quote. A $50,000 SPYx buy shows **+0.06% impact** and costs **+0.58% against SPY
 invisible term is roughly ten times the visible one, and unlike impact it is present at
 every size, including one share.
 
+### We tried to explain it, and could not
+
+The premium orders by dividend yield and is **exactly zero** for the one ticker in the set
+that pays no dividend:
+
+| tkr | AUM $m | liquidity $k | dividend yield | premium |
+|---|---|---|---|---|
+| SPY | 72.9 | 7,343 | 0.98% | 57.1 bp |
+| QQQ | 60.8 | 1,808 | 0.40% | 27.3 bp |
+| AAPL | 51.9 | 656 | 0.32% | 26.6 bp |
+| GOOGL | 56.5 | 457 | 0.23% | 19.3 bp |
+| NVDA | 70.6 | 2,065 | 0.46% | **9.2 bp** |
+| TSLA | **83.6** | 1,345 | 0.00% | **0.0 bp** |
+
+Correlation with dividend yield is **0.887**, against **−0.235** for AUM and 0.780 for
+liquidity. Size and demand are ruled out by TSLA: the largest wrapper in the set by AUM,
+with healthy liquidity, carries a premium of exactly zero.
+
+But the dividend story does not close either:
+
+- **SPY's ex-dividend date fell inside the build window.** A ~$1.90 dividend on a $759
+  spot predicts a **~25 bp step** at the open — widening, for an accumulating wrapper.
+  Measured across the open: **−5.4 bp.** SPY's spread is 3 bp, so a 25 bp step would have
+  been unmissable. **No step.**
+- **NVDA yields 0.46%**, more than AAPL or GOOGL, yet carries the smallest premium of the
+  three. That inversion is unexplained.
+- The implied accrual window clusters at **7–10 months** against a wrapper that launched
+  roughly 14 months ago.
+
+**The mechanism is unresolved. The premium is measured, reproducible, and not shown
+anywhere.** The product does not depend on which explanation wins.
+
 Reproduce: `npx tsx replay/pool-vs-equity.ts`
 
 ## The product
@@ -134,6 +166,27 @@ solana-test-validator --url https://api.mainnet-beta.solana.com \
 - **The guard binds only transactions that include its two instructions.** For your own
   users that holds by construction; as a protocol others integrate, it is an instruction
   they append, not protection for a pool as a whole.
+
+## A pattern worth naming: the evidence broke twice, the code didn't
+
+Two independent bugs in this build had the same shape — the thing being tested worked, and
+the *proof* of it was what failed.
+
+1. **The test suite asserted on error message strings.** `skipPreflight` suppresses logs on
+   the thrown error, so those assertions matched nothing and would have passed on *any*
+   failure, including the wrong one. Two cases read as failing when the program was
+   correct. Now asserts on Anchor error codes.
+2. **The first devnet run lost the rejected transaction's signature.**
+   `sendAndConfirmTransaction` throws on a rejected fill, and the signature was being
+   scraped from the error text by a regex that did not match. The guard blocked the fill
+   exactly as intended and the artifact proving it was thrown away. Now sends via
+   `sendRawTransaction` so the signature is in hand before confirmation reports failure.
+
+Both were caught by checking the evidence rather than the outcome. The same habit caught
+two bad numbers in the analysis: an estimated NVDA dividend yield that reversed a
+conclusion once verified, and a fabricated Pyth feed id that silently corrupted a
+correlation to −0.016. Figures that drive a conclusion here were checked against their
+source; figures that are estimates are labelled.
 
 Full measured record, including where evidence contradicted the original design:
 [docs/day0-findings.md](docs/day0-findings.md).
