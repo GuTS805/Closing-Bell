@@ -153,6 +153,10 @@ Both Meteora program IDs verified executable on mainnet:
 
 ## 6. The premise holds - but only at size, and the demo script is what is wrong
 
+> **Superseded in part by section 12.** The size effect below is real and large. The
+> *off-hours* part of the thesis did not survive the session-hours comparison: the same
+> dislocation is present during market hours. Read this section with section 12.
+
 The first draft of this document reported "9 bps from oracle at 3am" and concluded the
 premise was weaker than Section 2.1 claims. **That measurement tested one share of the
 single most liquid, most arbed xStock available, and proved nothing.** It falsifies the
@@ -382,3 +386,60 @@ transaction in the app, so it holds for your own users by construction; for the 
 others integrate" story, you are offering an instruction others append - a cleaner
 integration surface than asking them to reroute swaps through you, but it is not, and
 should not be claimed as, protection for a pool as a whole.
+
+---
+
+## 12. The session-hours comparison does not support the off-hours thesis
+
+Same probe, same tickers, same notional tiers. Closed run 03:50 ET; open run 11:59 ET,
+mid-session. Deviation from oracle when buying:
+
+| ticker | $50k closed | $50k open | $250k closed | $250k open |
+|---|---|---|---|---|
+| SPYx | +77 | +78 | +105 | **+88** |
+| NVDAx | +28 | **+65** | +107 | **+212** |
+| TSLAx | +15 | **+63** | +127 | **+277** |
+| AAPLx | +123 | +142 | +1439 | +1560 |
+| GOOGLx | +137 | +145 | +441 | +465 |
+| METAx | +292 | **+177** | +10592 | **+5608** |
+| AMZNx | +137 | +134 | +794 | +881 |
+
+**There is no off-hours penalty.** Several names are materially *worse* during the regular
+session — NVDAx +107 to +212 and TSLAx +127 to +277 at $250k — and the two that improve
+(METAx, SPYx) do not establish a pattern in the other direction either.
+
+### What this breaks
+
+Section 2 predicts that with the reference market shut and the pool the only
+price-discovery mechanism, off-hours execution should be materially worse. Measured twice,
+eight hours apart, it is not. The dislocation at size is **a thin-AMM-liquidity property
+that holds around the clock**, not a market-hours phenomenon.
+
+That is fatal to the framing, not to the product:
+
+- **Does not survive:** "trade at 3am and not get picked off", the closing-bell metaphor,
+  the market-open/closed fee premium as the headline feature, and the Section 15 demo
+  script, which stakes everything on the 3am contrast.
+- **Does survive, and is large:** oracle-banded slippage protection at size on thin
+  tokenized-equity AMMs. A trader putting $250k into AAPLx pays 15% over oracle whenever
+  they do it. A 2% band blocks that fill at 3am and at noon alike. This is a bigger
+  addressable problem than the off-hours one, because it is always on.
+
+The market-state machinery (`MarketClock`, closed-band widening, halt propagation) is still
+worth keeping — it is cheap, it is what the SEC order in section 9 gestures at, and a wider
+band when the reference market is shut is defensible prudence. It just cannot be the pitch.
+
+### Caveats, stated because they could change the conclusion
+
+- **n = 1 per session.** Two snapshots, one day. The series in `replay/` accumulates; run
+  it repeatedly before treating this as settled.
+- The closed sample was 03:50 ET Friday, among the quietest hours of the week. A weekend
+  sample, when the underlying has been shut for two days, is a different and fairer test of
+  the thesis.
+- During the session the underlying is moving, so pool prices chase a moving reference.
+  That may be *why* open-hours depth looks worse, and it is a real effect rather than an
+  artefact — but it is the opposite of what Section 2 predicts.
+- **Event windows remain untested**, and remain the strongest remaining chance for the
+  off-hours thesis: a Friday-close-to-Monday-open span covering an earnings release is
+  where a stale pool should genuinely gap. If that shows nothing either, reframe fully
+  around all-hours slippage protection.
