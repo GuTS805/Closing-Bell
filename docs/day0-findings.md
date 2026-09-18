@@ -443,3 +443,70 @@ band when the reference market is shut is defensible prudence. It just cannot be
   off-hours thesis: a Friday-close-to-Monday-open span covering an earnings release is
   where a stale pool should genuinely gap. If that shows nothing either, reframe fully
   around all-hours slippage protection.
+
+---
+
+## 13. The wrapper premium is in the pool, not just between two feeds
+
+This was the check that decides the pitch, and it passes.
+
+Buying always pays the spread, so a buy quote cannot isolate the pool mid. Quoting both
+directions at the same notional cancels it: `mid = (buy_dev + sell_dev) / 2`. Measured
+at $2,000 notional, 12:11 ET, against `Equity.US.<T>/USD`:
+
+| ticker | buy | sell | **pool mid** | RR feed | diff | spread |
+|---|---|---|---|---|---|---|
+| SPY | +62 | +59 | **+60 bp** | +57 | +3 | 3 bp |
+| TSLA | +7 | -3 | **+2 bp** | 0 | +2 | 10 bp |
+| NVDA | +24 | +14 | +19 bp | +9 | +9 | 10 bp |
+| AAPL | +57 | +14 | +35 bp | +27 | +9 | 43 bp |
+| GOOGL | +32 | -17 | +7 bp | +19 | -12 | 49 bp |
+
+**Correlation(pool mid, RR) = 0.931 over n=5.** Mean pool mid 24.9 bp against mean RR
+22.4 bp — the same level, not a constant offset.
+
+The discriminator is TSLA against SPY. TSLA's RR is 1.00000 and its pool mid is +2 bp;
+SPY's is 1.00571 and its pool mid is +60 bp. A feed-construction artifact would show a
+similar offset on both. Instead the pool premium tracks the published redemption ratio
+ticker by ticker. **The premium is real and it is in the price people actually trade at.**
+
+Fit quality inversely tracks spread width — SPY and TSLA have 3 bp and 10 bp spreads and
+fit within 3 bp, while GOOGL and AAPL have ~45 bp spreads and fit worst. That is the
+expected behaviour if the signal is real and the wide-spread mids are simply noisy
+estimates, and it is a reason to weight tight-spread names when quoting the finding.
+
+### Why this is the wedge, and why depth is not
+
+Jupiter already displays price impact. A trader placing a $250k AAPLx buy sees the ~15%
+before signing, so a guard that blocks it is refusing a trade they could already see was
+bad — no information asymmetry, and that objection lands in a judge's first question.
+
+The basis is different in kind:
+
+- Jupiter's impact is measured against **the pool's own mid**.
+- The pool mid itself sits **above the underlying equity**, by an amount nothing on Solana
+  displays.
+- So a user buying SPYx at "0.01% price impact" sees an excellent fill and pays **57 bp
+  over SPY**. Invisible, structural, and present **at every size, including one share**.
+
+The true cost of a tokenized-stock trade is pool impact *plus* wrapper premium, and only
+the first is shown anywhere. The guard bands against the **underlying equity**, not the
+pool mid, which is the only way to catch the second term — a claim Jupiter's number
+structurally cannot make. It also survives section 12 entirely, because the basis is
+time-invariant by construction rather than a market-hours effect.
+
+### Who this repositions the product for
+
+For a human reading a quote, display would be enough. For **programmatic flow** — agents,
+DCA bots, treasury execution, and lending liquidations against stock collateral — nobody
+reads a quote, and an on-chain band is the only enforcement available. That user needs a
+program rather than a dashboard.
+
+### Caveats
+
+- n = 5 with an RR to compare against, single sample.
+- The RR feeds are ~59 days stale. Today's pool mid still matching a two-month-old ratio
+  argues the basis is stable, but it is not a like-for-like comparison and should be said
+  that way.
+- METAx (+50 bp) and AMZNx (-25 bp) have no RR feed. AMZNx's negative mid comes with a
+  52 bp spread, so that number is noise rather than a discount.

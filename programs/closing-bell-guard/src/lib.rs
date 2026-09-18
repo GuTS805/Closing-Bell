@@ -260,11 +260,14 @@ pub mod closing_bell_guard {
         let feed_id = get_feed_id_from_hex(&feed_id_hex)?;
 
         // The pinned account must actually carry this feed, or shard pinning means nothing.
-        let clock = Clock::get()?;
-        ctx.accounts
-            .price_update
-            .get_price_no_older_than(&clock, u64::MAX, &feed_id)
-            .map_err(|_| error!(GuardError::FeedIdMismatch))?;
+        //
+        // Compared directly rather than via `get_price_no_older_than`: registration should
+        // not fail because the feed happens to be stale right now, and passing `u64::MAX`
+        // as the max age panics inside the SDK on `publish_time + max_age`.
+        require!(
+            ctx.accounts.price_update.price_message.feed_id == feed_id,
+            GuardError::FeedIdMismatch
+        );
 
         let m = &mut ctx.accounts.market;
         m.base_mint = ctx.accounts.base_mint.key();
