@@ -1,0 +1,31 @@
+[toolchain]
+anchor_version = "1.2.0"
+solana_version = "4.1.2"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+closing_bell_guard = "DeAF1jFtXTweJnC8x1P5VkzYNcdiqC6EfGiz6uxhi8ig"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx tsx tests/day0.ts"
+
+# Mainnet accounts cloned into the local validator for the SS12 feasibility test.
+# Lets us exercise the real Pyth account + Meteora program without spending mainnet SOL.
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+[[test.validator.clone]]
+address = "D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW" # Pyth AAPL/USD shard 1 (FRESH)
+
+[[test.validator.clone]]
+address = "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp" # AAPLx mint (Token-2022)

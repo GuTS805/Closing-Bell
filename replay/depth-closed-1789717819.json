@@ -1,0 +1,245 @@
+{
+  "capturedAtUnix": 1789717819,
+  "capturedAtET": "9/18/2026, 3:50:19 AM",
+  "sessionLabel": "closed",
+  "rows": [
+    {
+      "symbol": "SPYx",
+      "liquidity": 7343371,
+      "feedId": "19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
+      "oracle": 763.78,
+      "conf": 0.03,
+      "oracleAgeSecs": 8,
+      "tiers": {
+        "1000": {
+          "devBps": 70.4677214710788,
+          "effPrice": 769.162183630518,
+          "impactPct": 0.018917297270191386,
+          "venues": "Raydium CLMM"
+        },
+        "10000": {
+          "devBps": 72.04360784790482,
+          "effPrice": 769.2825466802072,
+          "impactPct": 0.03456048074972596,
+          "venues": "AlphaQ+Raydium CLMM+Byreal"
+        },
+        "50000": {
+          "devBps": 76.65695454888706,
+          "effPrice": 769.6349048745349,
+          "impactPct": 0.0803271703074468,
+          "venues": "Raydium CLMM+Riptide+Byreal"
+        },
+        "250000": {
+          "devBps": 105.03071848070839,
+          "effPrice": 771.8020362161195,
+          "impactPct": 0.36089011840708846,
+          "venues": "Raydium CLMM+Riptide+Raydium CLMM"
+        }
+      }
+    },
+    {
+      "symbol": "NVDAx",
+      "liquidity": 2064716,
+      "feedId": "b1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593",
+      "oracle": 221.725,
+      "conf": 0.03138,
+      "oracleAgeSecs": 2,
+      "tiers": {
+        "1000": {
+          "devBps": 21.184264219254125,
+          "effPrice": 222.1947080984014,
+          "impactPct": 0.01258211945284996,
+          "venues": "Riptide"
+        },
+        "10000": {
+          "devBps": 21.029106683074488,
+          "effPrice": 222.19126786793046,
+          "impactPct": 0.01103399487980233,
+          "venues": "BinaryFi+Riptide"
+        },
+        "50000": {
+          "devBps": 28.303578912191476,
+          "effPrice": 222.35256110343056,
+          "impactPct": 0.08356540068525779,
+          "venues": "Raydium CLMM+Riptide"
+        },
+        "250000": {
+          "devBps": 106.86685277295894,
+          "effPrice": 224.09450529310843,
+          "impactPct": 0.8602415288034078,
+          "venues": "Riptide+Raydium CLMM"
+        }
+      }
+    },
+    {
+      "symbol": "TSLAx",
+      "liquidity": 1344772,
+      "feedId": "16dad506d7db8da01c87581c87ca897a012a153557d4d578c3b9c9e1bc0632f1",
+      "oracle": 369.34999999999997,
+      "conf": 0.06999999999999999,
+      "oracleAgeSecs": -2,
+      "tiers": {
+        "1000": {
+          "devBps": 5.738187065765047,
+          "effPrice": 369.561939939274,
+          "impactPct": 0,
+          "venues": "Riptide"
+        },
+        "10000": {
+          "devBps": 5.673462243234874,
+          "effPrice": 369.55954932795385,
+          "impactPct": 0,
+          "venues": "Riptide+Whirlpool"
+        },
+        "50000": {
+          "devBps": 14.64546104959521,
+          "effPrice": 369.89093010386676,
+          "impactPct": 0.057402482659798,
+          "venues": "Raydium CLMM+Riptide"
+        },
+        "250000": {
+          "devBps": 127.32934597002355,
+          "effPrice": 374.0529093934028,
+          "impactPct": 1.1694350603081323,
+          "venues": "Riptide+Raydium CLMM+Raydium CLMM"
+        }
+      }
+    },
+    {
+      "symbol": "AAPLx",
+      "liquidity": 655523,
+      "feedId": "49f6b65cb1de6b10eaf75e7c03ca029c306d0357e91b5311b175084a5ad55688",
+      "oracle": 337.21,
+      "conf": 0.034999999999999996,
+      "oracleAgeSecs": -1,
+      "tiers": {
+        "1000": {
+          "devBps": 37.53199001282823,
+          "effPrice": 338.47561623522256,
+          "impactPct": 0.24205480287049952,
+          "venues": "Byreal"
+        },
+        "10000": {
+          "devBps": 51.22034181358998,
+          "effPrice": 338.93720114629605,
+          "impactPct": 0.3779111270124307,
+          "venues": "Raydium CLMM+Byreal+Raydium CLMM"
+        },
+        "50000": {
+          "devBps": 123.34895362841263,
+          "effPrice": 341.3694500653037,
+          "impactPct": 1.0877160551460283,
+          "venues": "Raydium CLMM+Raydium CLMM+Byreal"
+        },
+        "250000": {
+          "devBps": 1438.655728162716,
+          "effPrice": 385.7229098093749,
+          "impactPct": 12.461429911837444,
+          "venues": "TesseraV+Whirlpool+Raydium CLMM+Byreal"
+        }
+      }
+    },
+    {
+      "symbol": "GOOGLx",
+      "liquidity": 457374,
+      "feedId": "5a48c03e9b9cb337801073ed9d166817473697efff0d138874e0f6a33d6d5aa6",
+      "oracle": 353.945,
+      "conf": 0.06499999999999999,
+      "oracleAgeSecs": -13,
+      "tiers": {
+        "1000": {
+          "devBps": 45.07379233789974,
+          "effPrice": 355.5403643429038,
+          "impactPct": 0.43774834019283543,
+          "venues": "Byreal"
+        },
+        "10000": {
+          "devBps": 63.96872770844309,
+          "effPrice": 356.2091411328765,
+          "impactPct": 0.6246748262895547,
+          "venues": "Byreal+Raydium CLMM+BisonFi+Meteora DLMM"
+        },
+        "50000": {
+          "devBps": 136.93449093589118,
+          "effPrice": 358.7917278394304,
+          "impactPct": 1.3399794831125038,
+          "venues": "Raydium CLMM+HumidiFi+Meteora DLMM+Byreal"
+        },
+        "250000": {
+          "devBps": 441.27102065419444,
+          "effPrice": 369.5635671405449,
+          "impactPct": 4.215668487511586,
+          "venues": "Raydium CLMM+Byreal+TesseraV+Raydium CLMM"
+        }
+      }
+    },
+    {
+      "symbol": "METAx",
+      "liquidity": 350266,
+      "feedId": "78a3e3b8e676a8f73c439f5d749737034b139bbbe899ba5775216fba596607fe",
+      "oracle": 687.1199999999999,
+      "conf": 0.12999999999999998,
+      "oracleAgeSecs": -13,
+      "tiers": {
+        "1000": {
+          "devBps": 27.54926086349594,
+          "effPrice": 689.0129648124524,
+          "impactPct": 0.04246727420226594,
+          "venues": "Raydium CLMM"
+        },
+        "10000": {
+          "devBps": 52.98090389155844,
+          "effPrice": 690.7604238681967,
+          "impactPct": 0.2953359819568349,
+          "venues": "Byreal+Raydium CLMM+Whirlpool"
+        },
+        "50000": {
+          "devBps": 291.7277200235043,
+          "effPrice": 707.1651950982549,
+          "impactPct": 2.608278156039025,
+          "venues": "Byreal+Raydium CLMM"
+        },
+        "250000": {
+          "devBps": 10591.735102667226,
+          "effPrice": 1414.8993023744702,
+          "impactPct": 51.32371903558136,
+          "venues": "Whirlpool+Raydium CLMM+Manifest"
+        }
+      }
+    },
+    {
+      "symbol": "AMZNx",
+      "liquidity": 221571,
+      "feedId": "b5d0e0fa58a1f8b81498ae670ce93c872d14434b72c364885d4fa1b257cbb07a",
+      "oracle": 252.23999999999998,
+      "conf": 0.039999999999999994,
+      "oracleAgeSecs": -9,
+      "tiers": {
+        "1000": {
+          "devBps": 18.473121136020197,
+          "effPrice": 252.70596600753495,
+          "impactPct": 0.016408917458267527,
+          "venues": "Raydium CLMM"
+        },
+        "10000": {
+          "devBps": 37.3802003031601,
+          "effPrice": 253.1828781724469,
+          "impactPct": 0.2047446817999953,
+          "venues": "Raydium CLMM+Byreal+BisonFi+Meteora DLMM"
+        },
+        "50000": {
+          "devBps": 136.7511217427472,
+          "effPrice": 255.68941029483904,
+          "impactPct": 1.1830410172991903,
+          "venues": "Raydium CLMM+BisonFi+Raydium CLMM+Byreal"
+        },
+        "250000": {
+          "devBps": 793.828420340285,
+          "effPrice": 272.2635280746633,
+          "impactPct": 7.198550800799136,
+          "venues": "Raydium CLMM+TesseraV+Raydium CLMM+Byreal"
+        }
+      }
+    }
+  ]
+}

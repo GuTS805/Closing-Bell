@@ -1,0 +1,283 @@
+# Day-0 findings
+
+Run date: 2026-09-18, ~07:20-07:40 UTC (03:20 ET, Friday - NYSE shut).
+Everything below was measured, not assumed, and is reproducible from this repo.
+
+---
+
+## 1. Section 12 feasibility test - oracle half PASSES
+
+Ran the guard against a local validator with the real mainnet Pyth account cloned in
+(`npm run day0`). Measured with `sol_log_compute_units()` either side of each step.
+
+| Step | CU |
+|---|---|
+| Pyth read (`get_price_no_older_than`, incl. deserialization + feed-id + staleness check) | **2,970** |
+| Band math (confidence ratio, band widening) | **399** |
+| Program total | **7,417** |
+| Transaction total | **7,567** |
+
+Section 12's bar is ~250k CU. The oracle read plus band derivation is **~1.4% of it**,
+leaving roughly 242k CU for the swap CPI. On this axis the architecture is confirmed with
+a very large margin - compute budget is not the binding constraint, and the Section 16
+risk "compute-unit budget exceeded" can be downgraded from High to Low.
+
+Live values observed: `price=337.1725 conf=0.0775 (2 bps) expo=-5 age=23s band=202bps`.
+
+**What this does not test:** the Meteora swap CPI (see section 5 below - no eligible pool
+exists to CPI into). Section 12 is therefore **half answered**. The half that is answered
+is the half that was quantifiable; the remaining half is blocked on a pool, not on
+compute.
+
+---
+
+## 2. Pyth shard selection is a correctness bug waiting to happen
+
+`Equity.US.AAPL/USD` (`49f6b65c...`) has **multiple on-chain accounts at different shards,
+and they disagree badly**:
+
+| Shard | Address | Age | Price |
+|---|---|---|---|
+| 0 | `DJ2FyTgUAkEtXW3U5P9PF19meFTRtW4ZWKKFgACfVbUy` | **34.5 days** | 305.92 |
+| 1 | `D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW` | **5 s** | 337.10 |
+
+Shard 0 is the default in most examples, and it is a month stale and **10% wrong**. A
+guard banding against it would reject good fills and allow bad ones. The control feed
+(`Crypto.SOL/USD`) shows the same pattern: shards 0 and 1 fresh, shard 2 stale by 889
+days.
+
+**Action:** pin shard 1, and have the keeper assert freshness of the specific account it
+pushes to rather than trusting a derivation. This confirms Section 6.2's "known trap" -
+but the trap is shard choice, not the feed.
+
+Derivation note: sponsored accounts are PDAs of
+**`pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT`** (push oracle), seeds
+`[shard_u16_le, feed_id]`, while the account **owner** is
+`rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ` (receiver). Deriving against the receiver
+finds nothing - that cost time.
+
+---
+
+## 3. The market-state derivation in Section 5.3 does not work as written
+
+Section 5.3 step 4 derives `market_open` from two signals, one being oracle `publish_time`
+staleness. **Measured at 03:21 ET on a Friday with NYSE shut, the equity feed was 23
+seconds old.** The feed publishes around the clock.
+
+So oracle staleness does **not** distinguish open from closed. The "two independent
+signals, fail safe if either says closed" design collapses to one signal - the
+keeper-maintained `MarketClock` - and the fail-safe is weaker than the doc claims.
+
+Staleness is still worth checking (it catches a dead feed) but it cannot carry
+market-state. Either accept the keeper as the single source and say so honestly, or add a
+genuinely independent second signal.
+
+Related: there is a second feed, `Equity.Index.AAPL/USD` (`aaba35e6...`), described as
+"PYTH PRICE IN USD FOR AAPL 24/7". **It has no on-chain account on shards 0-3**, so it is
+not usable by the program today without pushing it yourself.
+
+---
+
+## 4. The Critical risk is mostly not real - the transfer hook is disabled
+
+Read directly off the mainnet mints with `spl-token display`:
+
+| Mint | Transfer Hook | Permanent delegate | Freeze authority | Transfer fee | ScaledUiAmount |
+|---|---|---|---|---|---|
+| AAPLx `Xsb...zJp` | present, **Program Id: Disabled** | yes `5aMNN...` | yes `JDq14...` | none | **absent** |
+| TSLAx `XsDo...zoB` | present, **Program Id: Disabled** | yes (same) | yes (same) | none | **absent** |
+| SPYx `Xso...F2W` | present, **Program Id: Disabled** | yes (same) | yes (same) | none | **absent** |
+
+Consequences for the architecture document:
+
+- **Section 16 row 1 ("Token-2022 transfer hook breaks the swap CPI", Critical) is largely
+  void.** There is no hook program to invoke and no extra accounts to resolve. Pivots
+  A/B/C were sized against a risk that is currently inert.
+- **Section 7.1's ScaledUiAmount row is wrong** for these mints - the extension is not
+  present, decimals are a plain 8. The Section 9.2 requirement to apply a multiplier
+  everywhere is unnecessary work. The AAPLx ~ 1.00266 figure has no on-chain basis today.
+- **Section 7.1's zero-transfer-fee requirement is satisfied** - no `TransferFeeConfig`.
+- **Permanent delegate confirmed**, so the Section 7.1 disclosure obligation stands. Add
+  freeze authority and a **Confidential transfer** extension (undocumented in the
+  architecture) to the same disclosure.
+
+Caveat to state honestly: the hook authority (`5aMNN...`) can enable a hook later. It is
+"disabled today", not "impossible". Keep the CPI hook-tolerant; just stop treating it as
+the project's central risk.
+
+---
+
+## 5. The Meteora bounty and the product describe two different pools
+
+**Corrected from the first draft of this document.** The original claim here was "no
+Meteora pool holds an xStock". The routing measurement behind it was right, but the
+conclusion was wrong and hid the actual problem.
+
+Stock-quoted DBC pools exist in quantity - hundreds of them, and Meteora announced on
+15 September that DBC supports Backpack-issued equities as quote assets, with StockLaunch
+listing twenty. Live examples include a DBC virtual pool sGME/AAPLx at
+`J1gcmbH3QthJahRdXqEAXc7eDbYE6JoWYqGVViGvFLbm`, graduated to DAMM v2 at
+`7FGmDHJNPhTu4VbRLQL7b5RKMXDD1p8Sm7hDKPWby4gA`.
+
+The distinction that matters is **which side of the pair the equity sits on**:
+
+- Closing Bell guards someone **buying AAPLx**. That needs an **AAPLx/USDC** pool, where
+  the equity is the asset being traded. Jupiter routes that to **Raydium CLMM and Byreal**
+  - no Meteora leg at any size tested.
+- The Meteora bounty wants a pool where **AAPLx is the quote token**, as in sGME/AAPLx.
+  There, the asset being traded is sGME. **There is no oracle for sGME, so the band has
+  nothing to check.**
+
+Section 7.2 and Sections 2-3 therefore describe two different pools, and the architecture
+document never noticed. Three ways out, none free:
+
+1. **Guard AAPLx/USDC on Raydium CLMM.** Coherent product, real liquidity, real users.
+   Drops the Meteora bounty entirely; the CPI target changes to Raydium.
+2. **Create and seed an AAPLx/USDC DAMM v2 pool on Meteora.** Keeps both tracks, but you
+   are the only LP - which turns "we protect real traders" into "we protect traders in the
+   pool we made", and a judge will ask.
+3. **Drop the Meteora bounty, keep Pyth plus the main track.** Cleanest. It was already
+   priority 3 and day-5-only.
+
+Recommended: (1) or (3). The Meteora bounty is $5K against a $100K main track, and forcing
+it is what created the incoherence.
+
+Both Meteora program IDs verified executable on mainnet:
+`dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN` (DBC),
+`cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG` (DAMM v2).
+
+---
+
+## 6. The premise holds - but only at size, and the demo script is what is wrong
+
+The first draft of this document reported "9 bps from oracle at 3am" and concluded the
+premise was weaker than Section 2.1 claims. **That measurement tested one share of the
+single most liquid, most arbed xStock available, and proved nothing.** It falsifies the
+demo script, which dramatises exactly that case, not the thesis.
+
+Re-measured at size and across thin names (`replay/depth-at-size.ts`), 03:50 ET Friday,
+market shut. Buying with USDC; positive = paid above oracle:
+
+| ticker | liq $k | $1k | $10k | $50k | $250k |
+|---|---|---|---|---|---|
+| SPYx | 7,343 | +70bp | +72bp | +77bp | +105bp |
+| NVDAx | 2,065 | +21bp | +21bp | +28bp | +107bp |
+| TSLAx | 1,345 | +6bp | +6bp | +15bp | +127bp |
+| AAPLx | 656 | +38bp | +51bp | +123bp | **+1439bp** |
+| GOOGLx | 457 | +45bp | +64bp | +137bp | +441bp |
+| METAx | 350 | +28bp | +53bp | +292bp | **+10592bp** |
+| AMZNx | 222 | +18bp | +37bp | +137bp | +794bp |
+
+**Off-hours depth collapses, and it collapses non-linearly.** AAPLx costs 14.4% above
+oracle at $250k. METAx costs 2.9% at $50k and 106% at $250k. A 2% band blocks every one of
+those fills. This is the number the pitch needs, and it is a far stronger one than the
+original framing.
+
+Two things this does **not** establish, which must not be overclaimed:
+
+- It measures **available depth**, not **realised fills**. It shows a trader attempting
+  size off-hours gets destroyed; it does not show that anyone did. Proving that still
+  needs actual on-chain swap history, which is the real Section 10 replay.
+- **No session-hours comparison yet.** The market opens 13:30 UTC. Re-run with
+  `SESSION_LABEL=open` and diff; the delta is the headline, not the absolute level.
+
+Secondary observations:
+
+- **SPYx carries a standing ~70 bp premium even at $1k**, flat across sizes. That is not
+  impact, it is a persistent offset - worth understanding before quoting SPYx numbers.
+- **PLTRx, GMEx and KOx have no shard-1 Pyth account at all.** Not every xStock can be
+  guarded. Oracle coverage, not liquidity, is the binding constraint on which tickers the
+  product supports.
+- Several oracle `publish_time` values read **ahead of local clock** (-1 s to -13 s). The
+  guard must tolerate negative age rather than assuming `now >= publish_time`.
+
+Still untested, and worth doing before building further: **event windows.** A
+Friday-close-to-Monday-open span covering an earnings release or news event. Steady-state
+numbers say nothing about the gap case, which is where the largest dislocation should be.
+
+---
+
+## 7. Blockers and environment
+
+- **No mainnet SOL.** Dev wallet `aCvwfxrMfV6apmHjLdo2nxP9GgcQZEZ3n9EpwKnYcc2`, balance 0.
+  The mainnet leg of Section 12 (a real tx; program deploy is roughly 2-5 SOL) is blocked
+  on funding.
+- **Pyth Hermes now requires auth** - `401 unauthorized` for *all* feeds tested, crypto
+  included, not just equities. The keeper cannot push fresh prices without a key. Claim
+  the Pyth Pro bounty perk immediately; Section 8's entire keeper design depends on it.
+- **Public RPC is rate-limiting** (`getTokenLargestAccounts` refused). Get a Helius or
+  Triton endpoint before the keeper runs on a 10-30 s cadence.
+
+### Toolchain that actually works
+
+Anchor 0.31.1 is a dead end: its platform-tools ships cargo 1.79, and transitive deps now
+require `edition2024`. Pinning `block-buffer`/`digest` does not clear it.
+
+Working combination, installed in WSL2 Ubuntu 24.04:
+
+```
+anchor-cli 1.2.0        anchor-lang 1.2.0
+solana-cli 4.1.2        pyth-solana-receiver-sdk 2.0.0
+                        solana-program 5.0.0
+```
+
+Two gotchas worth keeping: pin `anchor_version` and `solana_version` in `Anchor.toml`
+(Anchor otherwise maps the `solana-program` *crate* version to a nonexistent agave
+release), and `sol_log_compute_units` is not in Anchor's curated `solana_program`
+re-export - depend on `solana-program` directly.
+
+Builds use `CARGO_TARGET_DIR=/home/alok0/.cb-target` so cargo writes to the Linux
+filesystem while source stays on the Windows side.
+
+---
+
+## 8. What Section 12 still owes
+
+The CPI half - against whichever venue survives the section 5 decision.
+
+Note that **devnet cannot answer the TokenBadge question**, because AAPLx does not exist
+there. Testing it requires a synthetic Token-2022 mint reproducing the extension set
+(permanent delegate + freeze authority + confidential transfer + hook disabled). That
+tests the *structural* question - can a mint with these extensions be a quote token - but
+not whether Meteora would actually badge the real mint.
+
+Given the hook is disabled and the oracle read costs ~3.4k CU, a CPI pass is the expected
+outcome. The real unknowns are now **venue choice and pool eligibility**, not compute or
+Token-2022.
+
+---
+
+## 9. Regulatory: SEC Innovation Exemption, issued 2026-09-17
+
+Verified against the primary source (SEC press release 2026-90), not secondary reporting.
+Issued **yesterday**, runs five years. Tokenized Securities Venues (TSVs) may trade
+tokenized NMS stock using "permissioned automated market makers and liquidity pools"
+without registering as an exchange.
+
+Conditions that touch this project:
+
+- *"Smart contracts used by a TSV must be auditable, public, and deployed on a public,
+  permissionless distributed ledger."* Closing Bell satisfies this by construction.
+- *"A TSV must stop trading in a tokenized NMS stock concurrently with any stoppage of
+  trading in the underlying NMS stock on the primary listing exchange."*
+
+That second condition is the interesting one, and it cuts both ways:
+
+- **For the project:** it creates a concrete, regulator-stated need for **on-chain halt
+  propagation** - a mechanism that stops on-chain trading when the primary exchange halts.
+  That is structurally what `MarketClock` plus `set_paused` already are. It converges with
+  the tail-event circuit-breaker framing, and it is a narrower and more defensible claim
+  than "we fix off-hours pricing".
+- **Against the premise:** if "any stoppage" is read to include the ordinary 16:00 ET
+  close, then a TSV could not offer the 24/7 trading that Section 2 is built on. Read
+  narrowly (halts only), it just requires halt propagation. **This ambiguity is
+  unresolved** and should not be papered over.
+
+Two limits on how far this can be leaned on:
+
+- The order **says nothing about pricing mechanisms, price bands, market hours or
+  oracles.** There is no regulatory mandate for oracle banding. Claiming the SEC requires
+  what this project builds would be overreach.
+- It applies to **TSVs** seeking exemption from exchange registration. xStocks as they
+  trade today are not obviously TSVs under this order, and a hackathon project is not one
+  either.

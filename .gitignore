@@ -1,0 +1,11 @@
+target/
+.anchor/
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+test-ledger/
+**/*.rs.bk
+keypairs/
+*.log
