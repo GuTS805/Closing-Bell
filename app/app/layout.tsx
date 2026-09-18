@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   title: "Closing Bell",
   description:
     "The true cost of a tokenized stock trade: pool impact plus the wrapper premium nothing else shows.",
+  manifest: "/manifest.json",
 };
 
 const NAV = [
@@ -35,8 +37,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
         <header className="sticky top-0 z-50 border-b border-neutral-900 bg-neutral-950/90 backdrop-blur">
           <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-            <Link href="/" className="text-sm font-semibold tracking-tight">
-              Closing Bell
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/nav-logo.png"
+                alt=""
+                width={22}
+                height={22}
+                className="rounded-[5px]"
+                priority
+              />
+              <span className="text-sm font-semibold tracking-tight">Closing Bell</span>
             </Link>
             <nav className="flex gap-1">
               {NAV.map((n) => (

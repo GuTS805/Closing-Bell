@@ -1,0 +1,12 @@
+{
+  "name": "Closing Bell",
+  "short_name": "Closing Bell",
+  "description": "The true cost of a tokenized stock trade: pool impact plus the wrapper premium nothing else shows.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "display": "standalone"
+}
