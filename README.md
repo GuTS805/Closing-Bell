@@ -68,12 +68,21 @@ Reproduce: `npx tsx replay/pool-vs-equity.ts`
 
 ## The product
 
-A page that prices the trade you are actually doing, against the asset you think you are
-buying. Live mainnet data — Jupiter for pool prices, Pyth shard 1 read directly on-chain
+A Next.js app that prices the trade you are actually doing, against the asset you think you
+are buying. Live mainnet data — Jupiter for pool prices, Pyth shard 1 read directly on-chain
 for equity prices.
 
+| page | what it shows |
+|---|---|
+| `/` | Overview — the headline breakdown for a reference trade |
+| `/trade` | Calculator — pool impact vs. wrapper premium for any ticker and size |
+| `/position` | A held xStock's true cost, looked up read-only by wallet connect or pasted address — never signs anything |
+| `/proof` | The guard's devnet rejection, with a live "send a fill" button |
+| `/findings` | The dividend-yield investigation, including the null results |
+
 ```bash
-cd app && npm install && npm run dev
+cd app && cp .env.example .env.local   # fill in an RPC URL at minimum
+npm install && npm run dev
 ```
 
 ## The program
