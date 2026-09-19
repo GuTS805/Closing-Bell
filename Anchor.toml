@@ -17,7 +17,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "npx tsx tests/day0.ts"
+test = "npx tsx tests/guarded-fill.ts"
 
 # Mainnet accounts cloned into the local validator for the SS12 feasibility test.
 # Lets us exercise the real Pyth account + Meteora program without spending mainnet SOL.

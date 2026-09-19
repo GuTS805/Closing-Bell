@@ -30,6 +30,7 @@ import {
 } from "@solana/spl-token";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import { NextResponse } from "next/server";
 
@@ -38,7 +39,7 @@ export const maxDuration = 60;
 
 const RPC = process.env.DEVNET_RPC ?? "https://api.devnet.solana.com";
 const KEYPAIR_PATH =
-  process.env.GUARD_KEYPAIR_PATH ?? "/home/alok0/.config/solana/id.json";
+  process.env.GUARD_KEYPAIR_PATH ?? path.join(homedir(), ".config", "solana", "id.json");
 
 /** Deployment addresses, read from the record the devnet script writes. */
 interface Deployment {

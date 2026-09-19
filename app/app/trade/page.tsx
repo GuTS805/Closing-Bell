@@ -41,6 +41,7 @@ export default function TradePage() {
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets loading/error state for the new request before it lands
     setLoading(true);
     setErr(null);
     fetch(`/api/truecost?ticker=${ticker}&notional=${notional}`)
