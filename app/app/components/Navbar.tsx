@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 const links = [
   { href: "/", label: "Overview" },
   { href: "/trade", label: "Trade Calculator" },
+  { href: "/position", label: "Your Position" },
   { href: "/proof", label: "On-chain Proof" },
   { href: "/findings", label: "Research" },
 ];

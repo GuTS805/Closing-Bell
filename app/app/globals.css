@@ -432,6 +432,23 @@ html[data-theme="light"] .proof-page ol { background: #f7f9fb; }
 html[data-theme="light"] .findings-page section > dl > div { background: #fff9ed; border-color: #f3e5c6; }
 html[data-theme="light"] .findings-page section > dl dd { color: #805800; }
 
+.position-input { display: flex; flex-wrap: wrap; gap: 10px; }
+.position-input input { flex: 1; min-width: 220px; background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px; color: var(--ink); font-size: 13px; font-family: var(--font-mono), monospace; }
+.position-input input::placeholder { color: var(--ink-faint); }
+.position-input input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-color: var(--rule-bright); }
+.position-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.position-row:last-child { border-bottom: none; }
+.position-page .wallet-adapter-button { height: auto; padding: 10px 18px; background: var(--ink); color: var(--ground); border-radius: 6px; font-family: var(--font-body), sans-serif; font-size: 13px; font-weight: 500; line-height: 1.2; }
+.position-page .wallet-adapter-button:not([disabled]):hover { background: white; }
+.position-page .wallet-adapter-button-start-icon img { width: 16px; height: 16px; }
+.position-page .wallet-adapter-modal-wrapper { background: var(--ground-raised); border: 1px solid var(--rule); }
+.position-page .wallet-adapter-modal-title { color: var(--ink); }
+.position-page .wallet-adapter-modal-list li { border-radius: 6px; }
+html[data-theme="light"] .position-page .wallet-adapter-button { background: linear-gradient(120deg, #ffe16c, #ffda60); color: #0a0f16; }
+html[data-theme="light"] .position-page .wallet-adapter-button:not([disabled]):hover { background: #ffdc59; }
+html[data-theme="light"] .position-page .wallet-adapter-modal-wrapper { background: #ffffffec; border-color: var(--rule); }
+html[data-theme="light"] .position-page .wallet-adapter-modal-title { color: var(--ink); }
+
 @media (min-width: 1400px) {
   .nav-shell { padding-inline: 0; min-height: 80px; }
   .primary-nav { gap: 20px; }
