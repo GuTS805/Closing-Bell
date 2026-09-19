@@ -27,9 +27,17 @@ export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribe, getTheme, serverTheme);
   function toggleTheme() {
     const next = getTheme() === "light" ? "dark" : "light";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("closing-bell-theme", next); } catch { /* The toggle also works without browser storage. */ }
-    window.dispatchEvent(new Event(eventName));
+    const update = () => {
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem("closing-bell-theme", next); } catch { /* Storage is optional. */ }
+      window.dispatchEvent(new Event(eventName));
+    };
+    if (document.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const transition = document.startViewTransition(update);
+      void transition.finished.catch(() => { /* Rapid toggles can skip the visual transition. */ });
+    } else {
+      update();
+    }
   }
   return (
     <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>

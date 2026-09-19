@@ -21,11 +21,11 @@ export default function Navbar() {
   const toggle = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     function close(event: KeyboardEvent) {
-      if (event.key === "Escape") { setOpen(false); toggle.current?.focus(); }
+      if (event.key === "Escape" && open && !document.querySelector(".wallet-adapter-modal")) { setOpen(false); toggle.current?.focus(); }
     }
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, []);
+  }, [open]);
   return (
     <header className="site-header">
       <div className="nav-shell">

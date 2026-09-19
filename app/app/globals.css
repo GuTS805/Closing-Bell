@@ -597,3 +597,145 @@ html[data-theme="light"] .workspace-page .text-gold-bright { color: #906200; }
   .feature-card h3 { font-size: 14px; }
   .feature-card p { font-size: 12px; line-height: 1.55; }
 }
+
+/* One motion rhythm: fast controls, gentle page/card entrances. */
+:root { --ease-out: cubic-bezier(.22, 1, .36, 1); --motion-fast: 180ms; --motion-base: 280ms; }
+.page-motion { min-width: 0; }
+.motion-await { opacity: 0; transform: translateY(12px); }
+body, .site-header, .site-footer, .workspace-page, .quote-card, .token-section,
+.feature-card, .trade-controls, .measurement-panel, .wallet-adapter-dropdown-list {
+  transition: background-color var(--motion-base) ease, color var(--motion-base) ease,
+    border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+}
+a, button, input, summary {
+  transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease,
+    transform var(--motion-base) var(--ease-out), opacity var(--motion-fast) ease;
+}
+.feature-card, .token-card {
+  transition: transform var(--motion-base) var(--ease-out), border-color var(--motion-base) ease,
+    box-shadow var(--motion-base) ease, background-color var(--motion-base) ease;
+}
+@media (hover: hover) {
+  .token-card:hover { transform: translateY(-2px); }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px #0000000c; }
+  .feature-card:hover .feature-action > span { transform: translateX(4px); }
+  .button-primary:hover > span, .nav-action:hover > span { transform: translateX(3px); }
+}
+.feature-action > span, .button-primary > span, .nav-action > span {
+  display: inline-block; transition: transform var(--motion-base) var(--ease-out);
+}
+button:not(:disabled):active, .button-primary:active, .button-secondary:active { transform: scale(.98); }
+.primary-nav a::before, .primary-nav a::after { transition: opacity var(--motion-fast), transform var(--motion-base) var(--ease-out); }
+.measurement-panel .transition-opacity { transition: opacity var(--motion-base) ease; }
+.measurement-panel [aria-live] { transition: opacity var(--motion-base) ease; }
+.faq-list details[open] > p { animation: content-appear 240ms var(--ease-out); }
+@supports (interpolate-size: allow-keywords) {
+  .faq-list details { interpolate-size: allow-keywords; }
+  .faq-list details::details-content {
+    block-size: 0; overflow: clip;
+    transition: block-size var(--motion-base) var(--ease-out), content-visibility var(--motion-base) allow-discrete;
+  }
+  .faq-list details[open]::details-content { block-size: auto; }
+}
+@keyframes content-appear { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+::view-transition-old(root) { animation: theme-out 220ms ease both; }
+::view-transition-new(root) { animation: theme-in 280ms ease both; }
+@keyframes theme-out { to { opacity: 0; } }
+@keyframes theme-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Wallet UI is portaled outside the page: theme every surface explicitly. */
+html .wallet-adapter-modal {
+  background: transparent;
+  transition: opacity 150ms ease;
+}
+html .wallet-adapter-modal-overlay { background: #0b12205c; backdrop-filter: blur(5px); }
+html[data-theme="dark"] .wallet-adapter-modal-overlay { background: #0009; }
+html .wallet-adapter-modal-wrapper {
+  width: 100%; max-width: 440px;
+  background: #171c21; color: var(--ink);
+  border: 1px solid var(--rule-bright); border-radius: 20px;
+  box-shadow: 0 24px 90px #0005;
+  font-family: var(--font-body), sans-serif;
+  padding: 0 20px 20px;
+  transform: translateY(10px) scale(.98);
+  transition: transform 150ms var(--ease-out);
+}
+html .wallet-adapter-modal-fade-in .wallet-adapter-modal-wrapper { transform: translateY(0) scale(1); }
+html[data-theme="light"] .wallet-adapter-modal-wrapper { background: #fff; border-color: #e2e7ed; box-shadow: 0 24px 90px #17243a30; }
+html .wallet-adapter-modal-title {
+  color: var(--ink); font-family: var(--font-heading), sans-serif;
+  font-size: 23px; font-weight: 650; line-height: 1.4; letter-spacing: -.6px;
+  padding: 65px 18px 28px; margin: 0;
+}
+html .wallet-adapter-modal-list { margin: 0; display: grid; gap: 9px; }
+html .wallet-adapter-modal-list .wallet-adapter-button {
+  color: var(--ink); background: var(--ground);
+  border: 1px solid var(--rule); border-radius: 11px;
+  height: auto; min-height: 60px; padding: 13px 16px; line-height: 1.4;
+  font-family: var(--font-body), sans-serif; font-size: 15px; font-weight: 550;
+}
+html .wallet-adapter-modal-list .wallet-adapter-button span {
+  color: var(--ink-dim); opacity: 1; font-size: 11px;
+  background: var(--ground-raised); padding: 4px 8px; border-radius: 20px;
+}
+html .wallet-adapter-modal-list .wallet-adapter-button:not([disabled]):hover {
+  background: var(--ground-raised); border-color: var(--gold); transform: translateY(-1px);
+}
+html .wallet-adapter-modal-button-close {
+  width: 36px; height: 36px; padding: 10px; top: 17px; right: 17px;
+  background: var(--ground-sunk); border: 1px solid var(--rule);
+}
+html .wallet-adapter-modal-button-close svg,
+html .wallet-adapter-modal-button-close:hover svg { fill: var(--ink-dim); }
+html .wallet-adapter-modal-button-close:hover { background: var(--ground-raised); transform: rotate(90deg); }
+html .wallet-adapter-modal-list-more { color: var(--ink); font: 500 13px var(--font-body), sans-serif; padding: 16px 4px 0; }
+html .wallet-adapter-modal-list-more svg { fill: var(--ink-dim); }
+html .wallet-adapter-modal-middle { padding: 0 15px 15px; }
+html .wallet-adapter-modal-middle-button { color: #191507; background: #ffda70; border-radius: 8px; font-family: var(--font-body), sans-serif; }
+html .wallet-adapter-modal button:focus-visible,
+html .wallet-adapter-dropdown button:focus-visible,
+html .wallet-adapter-dropdown-list-item:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+html .wallet-adapter-dropdown-list { background: var(--ground-raised); border: 1px solid var(--rule); box-shadow: 0 10px 30px #0002; padding: 7px; min-width: 160px; }
+html .wallet-adapter-dropdown-list-item { color: var(--ink); font: 500 12px var(--font-body), sans-serif; }
+html .wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--ground-sunk); color: var(--gold); }
+.primary-nav .wallet-adapter-button { white-space: nowrap; min-height: 40px; flex-shrink: 0; }
+.position-page .wallet-adapter-button:not([disabled]):hover { color: #0b121d; }
+@media (min-width: 1001px) {
+  .nav-shell { gap: 16px; }
+  .primary-nav { gap: 6px; }
+  .primary-nav .nav-action { margin-left: 12px; min-width: 142px; padding-inline: 16px; }
+  .primary-nav a { padding-inline: 7px; }
+}
+@media (min-width: 1001px) and (max-width: 1250px) {
+  .primary-nav .nav-action { display: none; }
+  .brand-caption { font-size: 6px; }
+  .brand { font-size: 22px; }
+  .primary-nav a { font-size: 11px; padding-inline: 5px; }
+}
+@media (max-width: 1000px) {
+  .primary-nav {
+    display: flex; flex-direction: column; align-items: stretch;
+    opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px);
+    max-height: calc(100dvh - 80px); overflow-y: auto;
+    transition: opacity 200ms ease, transform 240ms var(--ease-out), visibility 240ms;
+  }
+  .primary-nav.nav-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+  .primary-nav .wallet-adapter-dropdown, .primary-nav .wallet-adapter-button { width: 100%; }
+  .primary-nav .wallet-adapter-button { justify-content: center; }
+}
+@media (max-width: 480px) {
+  html .wallet-adapter-modal-container { margin: 16px; min-height: calc(100dvh - 32px); }
+  html .wallet-adapter-modal-wrapper { padding: 0 15px 15px; border-radius: 17px; }
+  html .wallet-adapter-modal-title { font-size: 21px; padding: 64px 12px 24px; }
+  html .wallet-adapter-modal-list .wallet-adapter-button { padding-inline: 12px; font-size: 14px; }
+  .position-input input { min-width: 0; width: 100%; flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after, ::view-transition-old(root), ::view-transition-new(root) {
+    animation-duration: .01ms !important; animation-delay: 0ms !important;
+    transition-duration: .01ms !important; transition-delay: 0ms !important;
+  }
+  .motion-await { opacity: 1; transform: none; }
+}
