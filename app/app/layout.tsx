@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Inter, IBM_Plex_Mono } from "next/font/google";
 import Navbar from "./components/Navbar";
+import WalletContextProvider from "./components/WalletContextProvider";
 import Link from "next/link";
 import "./globals.css";
 
@@ -40,8 +41,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head><script dangerouslySetInnerHTML={{ __html: '(function(){try{document.documentElement.dataset.theme=localStorage.getItem("closing-bell-theme")==="dark"?"dark":"light"}catch(e){}})()' }} /></head>
       <body className="min-h-full flex flex-col">
-        <a href="#main-content" className="skip-link">Skip to content</a><Navbar />
-        <div id="main-content" className="flex-1" tabIndex={-1}>{children}</div><footer className="site-footer"><Link href="/" className="font-display text-xl">Closing Bell.</Link><p>Know the price. See the whole picture.</p><span>Built on Solana <span aria-hidden="true">↗</span></span></footer>
+        <WalletContextProvider>
+          <a href="#main-content" className="skip-link">Skip to content</a><Navbar />
+          <div id="main-content" className="flex-1" tabIndex={-1}>{children}</div><footer className="site-footer"><Link href="/" className="font-display text-xl">Closing Bell.</Link><p>Know the price. See the whole picture.</p><span>Built on Solana <span aria-hidden="true">↗</span></span></footer>
+        </WalletContextProvider>
       </body>
     </html>
   );

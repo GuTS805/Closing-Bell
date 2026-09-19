@@ -9,7 +9,6 @@ import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useEffect, useState } from "react";
-import WalletContextProvider from "../components/WalletContextProvider";
 
 interface Holding {
   ticker: string;
@@ -38,7 +37,7 @@ function shortAddress(a: string) {
   return a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a;
 }
 
-function PositionInner() {
+export default function PositionApp() {
   const { publicKey } = useWallet();
   const [input, setInput] = useState("");
   const [queryAddress, setQueryAddress] = useState<string | null>(null);
@@ -184,13 +183,5 @@ function PositionInner() {
         </Link>
       </div>
     </main>
-  );
-}
-
-export default function PositionApp() {
-  return (
-    <WalletContextProvider>
-      <PositionInner />
-    </WalletContextProvider>
   );
 }

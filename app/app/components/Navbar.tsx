@@ -5,6 +5,7 @@ import ThemeToggle from "./ThemeToggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const links = [
   { href: "/", label: "Overview" },
@@ -39,6 +40,7 @@ export default function Navbar() {
         <nav id="primary-navigation" aria-label="Main navigation" className={`primary-nav ${open ? "nav-open" : ""}`}>
           {links.map((link) => <Link key={link.href} href={link.href} aria-current={pathname === link.href ? "page" : undefined} onClick={() => setOpen(false)}>{link.label}</Link>)}
           <Link href="/#faq" onClick={() => setOpen(false)}>FAQ</Link>
+          <WalletMultiButton />
           <Link href="/trade" className="nav-action" onClick={() => setOpen(false)}>Check a token <span aria-hidden="true">&rarr;</span></Link>
         </nav>
       </div>
