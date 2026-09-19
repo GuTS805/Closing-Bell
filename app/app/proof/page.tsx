@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LiveGuard from "../components/LiveGuard";
 
 const PROGRAM_ID = "DeAF1jFtXTweJnC8x1P5VkzYNcdiqC6EfGiz6uxhi8ig";
 
@@ -68,7 +69,27 @@ export default function ProofPage() {
 
       <section className="mt-14">
         <div className="flex items-baseline justify-between border-b border-rule pb-2.5">
-          <h2 className="font-display text-[19px] text-ink">Two fills, on devnet</h2>
+          <h2 className="font-display text-[19px] text-ink">Try it against the cluster</h2>
+          <span className="text-[12px] text-ink-faint">devnet</span>
+        </div>
+        <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-ink-dim">
+          Price a fill outside the band and send it. The program decides, the cluster
+          settles it, and you get the transaction back either way.
+        </p>
+        <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-ink-faint">
+          Devnet has no tokenized-stock pool to trade against, so the middle instruction
+          mints the base and burns the quote instead of swapping. The guard reads balance
+          deltas and has no opinion on what moved them, so the check it performs is the
+          one it would perform on a real swap.
+        </p>
+        <div className="mt-6">
+          <LiveGuard />
+        </div>
+      </section>
+
+      <section className="mt-14">
+        <div className="flex items-baseline justify-between border-b border-rule pb-2.5">
+          <h2 className="font-display text-[19px] text-ink">Two we ran earlier</h2>
           <span className="text-[12px] text-ink-faint">band 301 bp</span>
         </div>
 
