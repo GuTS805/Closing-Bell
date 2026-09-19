@@ -1,0 +1,3 @@
+Tool: built-in image_gen
+Edit target: nav-logo.png
+Prompt: Remove the entire black square background and produce a genuinely transparent RGBA PNG with alpha, not a checkerboard rendering. Preserve the existing white/silver bell and gold orbital swoosh exactly in design and colors, with clean antialiased edges. Enlarge the mark within the square canvas, tightly framed with only 5% transparent margin; no text, no new elements, no shadow or background. This is a website navbar logo asset.

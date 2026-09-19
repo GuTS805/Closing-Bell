@@ -64,7 +64,8 @@ export default function TradePage() {
   const underlying = ticker.replace(/x$/, "");
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+    <main className="workspace-page trade-page mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+      <div className="eyebrow page-eyebrow"><span className="status-dot" />TRADE CALCULATOR</div>
       <h1 className="font-display text-[32px] font-light leading-tight tracking-tight text-ink">
         Price your trade
       </h1>
@@ -73,7 +74,7 @@ export default function TradePage() {
         cached.
       </p>
 
-      <div className="mt-9 space-y-3">
+      <div className="trade-controls mt-9 space-y-3">
         <Choices
           options={TICKERS.map((t) => ({ value: t, label: t }))}
           selected={ticker}
@@ -88,7 +89,7 @@ export default function TradePage() {
         />
       </div>
 
-      <section className="mt-10" aria-live="polite">
+      <section className="measurement-panel mt-10" aria-live="polite">
         <div className="mb-5 flex items-baseline justify-between border-b border-rule pb-2.5">
           <span className="text-[13px] text-ink-dim">
             {usd(notional)} of {ticker}

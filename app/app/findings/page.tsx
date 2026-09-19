@@ -42,7 +42,8 @@ const TIMELINE = [
 
 export default function FindingsPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+    <main className="workspace-page findings-page mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+      <div className="eyebrow page-eyebrow"><span className="status-dot" />RESEARCH & FINDINGS</div>
       <h1 className="max-w-lg font-display text-[32px] font-light leading-tight tracking-tight text-ink">
         We tried to explain the premium and could not
       </h1>

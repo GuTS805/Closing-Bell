@@ -30,7 +30,8 @@ const CASES = [
 
 export default function ProofPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+    <main className="workspace-page proof-page mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+      <div className="eyebrow page-eyebrow"><span className="status-dot" />ON-CHAIN PROOF</div>
       <h1 className="max-w-lg font-display text-[32px] font-light leading-tight tracking-tight text-ink">
         A number on a screen only helps whoever is reading it
       </h1>
