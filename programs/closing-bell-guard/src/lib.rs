@@ -153,6 +153,11 @@ impl MarketClock {
 pub struct PendingFill {
     pub user: Pubkey,
     pub market: Pubkey,
+    /// Pinned so `verify_fill` cannot be pointed at a different token account of the same
+    /// mint+owner than the one the snapshot was taken against — otherwise "net balance
+    /// change" could be measured across two different accounts instead of one real trade.
+    pub base_token_account: Pubkey,
+    pub quote_token_account: Pubkey,
     pub base_before: u64,
     pub quote_before: u64,
     pub oracle_price: i64,
@@ -166,7 +171,8 @@ pub struct PendingFill {
 }
 
 impl PendingFill {
-    pub const LEN: usize = 8 + 32 + 32 + 8 + 8 + 8 + 4 + 1 + 1 + 8 + 8 + 8 + 1;
+    pub const LEN: usize =
+        8 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 4 + 1 + 1 + 8 + 8 + 8 + 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -416,6 +422,8 @@ pub mod closing_bell_guard {
         let p = &mut ctx.accounts.pending;
         p.user = ctx.accounts.user.key();
         p.market = market.key();
+        p.base_token_account = ctx.accounts.base_token_account.key();
+        p.quote_token_account = ctx.accounts.quote_token_account.key();
         p.base_before = base_before;
         p.quote_before = quote_before;
         p.oracle_price = price.price;
@@ -554,6 +562,14 @@ pub mod closing_bell_guard {
             band_bps: p.band_bps,
             basis_bps: p.basis_bps,
         });
+        Ok(())
+    }
+
+    /// Reclaims an abandoned snapshot (e.g. a `record_pre_state` never followed by
+    /// `verify_fill` in the same transaction), which otherwise blocks all future trades
+    /// for this (user, market) pair since the PDA is `init`-only.
+    pub fn cancel_pending(_ctx: Context<CancelPending>) -> Result<()> {
+        msg!("pending snapshot cancelled");
         Ok(())
     }
 
@@ -714,10 +730,32 @@ pub struct VerifyFill<'info> {
     pub pending: Account<'info, PendingFill>,
     #[account(mut, seeds = [b"market", market.base_mint.as_ref()], bump = market.bump)]
     pub market: Account<'info, GuardedMarket>,
-    /// CHECK: bound to market.base_mint and to the snapshot's user.
+    /// CHECK: bound to market.base_mint/user via `bind_token_account`, and pinned to the
+    /// exact account recorded in `record_pre_state` so the delta can't be measured across
+    /// two different token accounts of the same mint.
+    #[account(address = pending.base_token_account @ GuardError::TokenAccountMismatch)]
     pub base_token_account: AccountInfo<'info>,
-    /// CHECK: bound to market.quote_mint and to the snapshot's user.
+    /// CHECK: same pinning as `base_token_account`, for the quote side.
+    #[account(address = pending.quote_token_account @ GuardError::TokenAccountMismatch)]
     pub quote_token_account: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct CancelPending<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    /// Lets a user reclaim rent and unblock future trades after an abandoned
+    /// `record_pre_state` (e.g. a client that never appended `verify_fill`). Anyone can
+    /// cancel only their own snapshot, and doing so has no effect on any in-flight trade
+    /// since the two instructions must share a transaction.
+    #[account(
+        mut,
+        close = user,
+        has_one = user,
+        seeds = [b"pending", user.key().as_ref(), pending.market.as_ref()],
+        bump = pending.bump
+    )]
+    pub pending: Account<'info, PendingFill>,
 }
 
 #[derive(Accounts)]
@@ -761,6 +799,8 @@ pub enum GuardError {
     TokenAccountMintMismatch,
     #[msg("Token account is not owned by the signing user")]
     TokenAccountOwnerMismatch,
+    #[msg("Token account does not match the one recorded in the snapshot")]
+    TokenAccountMismatch,
     #[msg("Price account does not match the one pinned for this market")]
     PriceAccountMismatch,
     #[msg("Price account does not carry the expected feed id")]

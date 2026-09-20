@@ -18,7 +18,7 @@ import {
   TransactionInstruction, ComputeBudgetProgram, sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
-  createMint, getOrCreateAssociatedTokenAccount, mintTo,
+  createMint, createAccount, getOrCreateAssociatedTokenAccount, mintTo,
   createTransferCheckedInstruction, TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { createHash } from "node:crypto";
@@ -58,8 +58,9 @@ function readOracle(data: Buffer) {
 /** Anchor error codes, in declaration order from GuardError. */
 const ERR = {
   OutsideBand: 6000,
-  BasisOutOfBounds: 6012,
-  NoFillDetected: 6017,
+  TokenAccountMismatch: 6010,
+  BasisOutOfBounds: 6013,
+  NoFillDetected: 6018,
 } as const;
 
 /**
@@ -258,6 +259,69 @@ async function main() {
   } catch (e: any) {
     const code = errCode(e);
     check("F basis ceiling", code === ERR.BasisOutOfBounds, `rejected BasisOutOfBounds(${code})`);
+  }
+
+  // G: verify_fill pointed at a different token account (same mint, same owner) than the
+  // one record_pre_state snapshotted. Must be rejected, not silently accepted against a
+  // balance history that has nothing to do with this trade.
+  console.log("--- G verify against a substituted token account");
+  {
+    const altBase = await createAccount(conn, payer, baseMint, payer.publicKey);
+    await mintTo(conn, payer, baseMint, altBase, payer, 1_000_000_000n);
+
+    const swapAmount = 1n * 10n ** BigInt(BASE_DECIMALS);
+    const quoteAmount = BigInt(Math.round(oracle.price * 10 ** QUOTE_DECIMALS));
+    const substitutedVerifyIx = new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        { pubkey: payer.publicKey, isSigner: true, isWritable: true },
+        { pubkey: pending, isSigner: false, isWritable: true },
+        { pubkey: market, isSigner: false, isWritable: true },
+        { pubkey: altBase, isSigner: false, isWritable: false }, // swapped in place of userBase
+        { pubkey: userQuote.address, isSigner: false, isWritable: false },
+      ],
+      data: disc("verify_fill"),
+    });
+
+    const tx = new Transaction()
+      .add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }))
+      .add(recordIx)
+      .add(createTransferCheckedInstruction(poolBase.address, baseMint, userBase.address,
+        pool.publicKey, swapAmount, BASE_DECIMALS, [], TOKEN_PROGRAM_ID))
+      .add(createTransferCheckedInstruction(userQuote.address, quoteMint, poolQuote.address,
+        payer.publicKey, quoteAmount, QUOTE_DECIMALS, [], TOKEN_PROGRAM_ID))
+      .add(substitutedVerifyIx);
+
+    try {
+      await sendAndConfirmTransaction(conn, tx, [payer, pool], { commitment: "confirmed", skipPreflight: true });
+      check("G substituted account", false, "allowed - should have been rejected");
+    } catch (e: any) {
+      const code = errCode(e);
+      check("G substituted account", code === ERR.TokenAccountMismatch,
+        `reverted TokenAccountMismatch(${code})`);
+    }
+  }
+
+  // H: an abandoned record_pre_state (no verify_fill in the same transaction) can be
+  // reclaimed with cancel_pending instead of permanently blocking this (user, market) pair.
+  console.log("--- H cancel_pending reclaims a stray snapshot");
+  {
+    await sendAndConfirmTransaction(conn, new Transaction().add(recordIx), [payer],
+      { commitment: "confirmed" });
+
+    const cancelIx = new TransactionInstruction({
+      programId: PROGRAM_ID,
+      keys: [
+        { pubkey: payer.publicKey, isSigner: true, isWritable: true },
+        { pubkey: pending, isSigner: false, isWritable: true },
+      ],
+      data: disc("cancel_pending"),
+    });
+    await sendAndConfirmTransaction(conn, new Transaction().add(cancelIx), [payer],
+      { commitment: "confirmed" });
+
+    const closed = (await conn.getAccountInfo(pending)) === null;
+    check("H cancel_pending", closed, closed ? "snapshot closed" : "snapshot still exists");
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

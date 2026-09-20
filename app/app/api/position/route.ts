@@ -50,33 +50,44 @@ export async function GET(req: Request) {
   try {
     const conn = new Connection(RPC, "confirmed");
 
-    const holdings: Holding[] = [];
-    for (const [ticker, m] of Object.entries(MARKETS)) {
-      const accounts = await conn.getParsedTokenAccountsByOwner(owner, {
-        mint: new PublicKey(m.mint),
-      });
-      const qty = accounts.value.reduce((sum, a) => {
-        const parsed = a.account.data.parsed as ParsedTokenAccountInfo;
-        return sum + (parsed.info.tokenAmount.uiAmount ?? 0);
-      }, 0);
-      if (qty <= 0) continue;
+    // Stage 1: check every ticker's balance in parallel rather than one round-trip at a
+    // time — these are independent lookups against unrelated mints.
+    const balances = await Promise.all(
+      Object.entries(MARKETS).map(async ([ticker, m]) => {
+        const accounts = await conn.getParsedTokenAccountsByOwner(owner, {
+          mint: new PublicKey(m.mint),
+        });
+        const qty = accounts.value.reduce((sum, a) => {
+          const parsed = a.account.data.parsed as ParsedTokenAccountInfo;
+          return sum + (parsed.info.tokenAmount.uiAmount ?? 0);
+        }, 0);
+        return { ticker, m, qty };
+      })
+    );
 
-      const priced = await getTrueCost(ticker, PROBE_NOTIONAL_USD);
-      const currentValueUsd = qty * priced.pool.midPrice;
-      const fairValueUsd = qty * priced.oracle.price;
+    // Stage 2: only tickers actually held need a true-cost lookup, and those are
+    // independent of each other too.
+    const holdings: Holding[] = await Promise.all(
+      balances
+        .filter(({ qty }) => qty > 0)
+        .map(async ({ ticker, m, qty }) => {
+          const priced = await getTrueCost(ticker, PROBE_NOTIONAL_USD);
+          const currentValueUsd = qty * priced.pool.midPrice;
+          const fairValueUsd = qty * priced.oracle.price;
 
-      holdings.push({
-        ticker,
-        label: m.label,
-        qty,
-        oraclePrice: priced.oracle.price,
-        midPrice: priced.pool.midPrice,
-        currentValueUsd,
-        fairValueUsd,
-        premiumUsd: currentValueUsd - fairValueUsd,
-        premiumBps: priced.breakdown.wrapperPremiumBps,
-      });
-    }
+          return {
+            ticker,
+            label: m.label,
+            qty,
+            oraclePrice: priced.oracle.price,
+            midPrice: priced.pool.midPrice,
+            currentValueUsd,
+            fairValueUsd,
+            premiumUsd: currentValueUsd - fairValueUsd,
+            premiumBps: priced.breakdown.wrapperPremiumBps,
+          };
+        })
+    );
 
     const totals = holdings.reduce(
       (acc, h) => ({

@@ -29,8 +29,8 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { NextResponse } from "next/server";
 
@@ -38,8 +38,17 @@ export const revalidate = 0;
 export const maxDuration = 60;
 
 const RPC = process.env.DEVNET_RPC ?? "https://api.devnet.solana.com";
-const KEYPAIR_PATH =
-  process.env.GUARD_KEYPAIR_PATH ?? path.join(homedir(), ".config", "solana", "id.json");
+
+/** `readFileSync` never expands `~` — Node has no shell to do that for it. */
+function expandHome(p: string): string {
+  return p === "~" || p.startsWith("~/") || p.startsWith("~\\")
+    ? path.join(homedir(), p.slice(2))
+    : p;
+}
+
+const KEYPAIR_PATH = expandHome(
+  process.env.GUARD_KEYPAIR_PATH ?? path.join(homedir(), ".config", "solana", "id.json")
+);
 
 /** Deployment addresses, read from the record the devnet script writes. */
 interface Deployment {
@@ -88,22 +97,47 @@ function parseOracle(d: Buffer) {
   };
 }
 
-/** Sending costs devnet SOL, so requests are spaced out. */
-let lastRun = 0;
+/**
+ * Sending costs devnet SOL, so requests are spaced out.
+ *
+ * Backed by a file rather than a module-level variable: a plain in-memory counter only
+ * rate-limits within a single process, so it does nothing against concurrent requests
+ * landing on separate serverless instances. A file in the OS temp dir is shared by every
+ * process on the same host — not across regions/instances on different machines, which
+ * needs a real shared store (KV/DB), but a real improvement over per-process state for a
+ * single-instance deployment.
+ */
 const MIN_GAP_MS = 4_000;
+const LAST_RUN_FILE = path.join(tmpdir(), "closing-bell-guard-run-last-run");
+
+function getLastRun(): number {
+  try {
+    return Number(readFileSync(LAST_RUN_FILE, "utf8")) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function setLastRun(ts: number) {
+  try {
+    writeFileSync(LAST_RUN_FILE, String(ts));
+  } catch {
+    // Best-effort: a failed write just means this request isn't recorded for throttling.
+  }
+}
 
 export async function POST(req: Request) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("mode") === "allow" ? "allow" : "reject";
 
-  const since = Date.now() - lastRun;
+  const since = Date.now() - getLastRun();
   if (since < MIN_GAP_MS) {
     return NextResponse.json(
       { error: `Give it a moment — ${Math.ceil((MIN_GAP_MS - since) / 1000)}s.` },
       { status: 429 }
     );
   }
-  lastRun = Date.now();
+  setLastRun(Date.now());
 
   const started = Date.now();
 

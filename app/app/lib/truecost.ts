@@ -110,17 +110,21 @@ export async function getTrueCost(ticker: string, notional: number): Promise<Tru
   if (!m) throw new Error(`unknown ticker ${ticker}`);
 
   const conn = new Connection(RPC, "confirmed");
-  const info = await conn.getAccountInfo(priceFeedAccount(SHARD, m.feedId));
+  const scale = 10 ** m.decimals;
+
+  // The oracle read, the notional fill quote, and the buy leg of the mid probe are all
+  // independent — only the probe's sell leg depends on the buy leg's output.
+  const [info, fill, probeBuy] = await Promise.all([
+    conn.getAccountInfo(priceFeedAccount(SHARD, m.feedId)),
+    jupQuote(USDC, m.mint, Math.round(notional * 1e6)),
+    jupQuote(USDC, m.mint, Math.round(MID_PROBE_USD * 1e6)),
+  ]);
   if (!info) throw new Error(`no shard-${SHARD} Pyth account for ${ticker}`);
   const oracle = parsePriceUpdateV2(info.data);
   const oracleAge = Math.floor(Date.now() / 1000) - oracle.publishTime;
 
-  const scale = 10 ** m.decimals;
-
-  const fill = await jupQuote(USDC, m.mint, Math.round(notional * 1e6));
   const fillPrice = notional / (fill.outAmount / scale);
 
-  const probeBuy = await jupQuote(USDC, m.mint, Math.round(MID_PROBE_USD * 1e6));
   const probeTokens = probeBuy.outAmount;
   const probeSell = await jupQuote(m.mint, USDC, probeTokens);
   const buyPx = MID_PROBE_USD / (probeTokens / scale);
