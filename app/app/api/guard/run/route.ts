@@ -50,6 +50,30 @@ const KEYPAIR_PATH = expandHome(
   process.env.GUARD_KEYPAIR_PATH ?? path.join(homedir(), ".config", "solana", "id.json")
 );
 
+/**
+ * Loads the demo signer.
+ *
+ * A hosted deployment has no `~/.config/solana/id.json` and no way to put one there, so
+ * the key has to arrive as an environment variable. `GUARD_KEYPAIR` takes precedence and
+ * accepts either the raw JSON array `solana-keygen` writes or that array base64-encoded,
+ * since some dashboards mangle long bracketed strings.
+ *
+ * This key signs nothing but devnet mints and burns of the guard's own test tokens. It is
+ * still a private key, so it lives only in the host's environment and never in the repo.
+ */
+function loadPayerSecret(): Uint8Array {
+  const inline = process.env.GUARD_KEYPAIR?.trim();
+  if (inline) {
+    const text = inline.startsWith("[")
+      ? inline
+      : Buffer.from(inline, "base64").toString("utf8");
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) throw new Error("GUARD_KEYPAIR is not a byte array");
+    return Uint8Array.from(parsed);
+  }
+  return Uint8Array.from(JSON.parse(readFileSync(KEYPAIR_PATH, "utf8")));
+}
+
 /** Deployment addresses, read from the record the devnet script writes. */
 interface Deployment {
   programId: string;
@@ -150,7 +174,7 @@ export async function POST(req: Request) {
 
     const conn = new Connection(RPC, "confirmed");
     const payer = Keypair.fromSecretKey(
-      Uint8Array.from(JSON.parse(readFileSync(KEYPAIR_PATH, "utf8")))
+      loadPayerSecret()
     );
 
     const priceInfo = await conn.getAccountInfo(PRICE_ACCOUNT);
@@ -286,6 +310,16 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "failed";
-    return NextResponse.json({ error: message }, { status: 502 });
+    // A missing signer is a deployment problem, not something the reader did. Saying so
+    // plainly beats showing them a raw ENOENT against a path on someone else's machine.
+    const missingSigner = message.includes("ENOENT") || message.includes("GUARD_KEYPAIR");
+    return NextResponse.json(
+      {
+        error: missingSigner
+          ? "The live demo has no signer configured on this deployment. The two transactions below were run against devnet and are still verifiable on Solscan."
+          : message,
+      },
+      { status: 502 }
+    );
   }
 }
