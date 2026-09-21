@@ -31,10 +31,10 @@ const ROWS: Row[] = [
 ];
 
 const SERIES = [
-  { tkr: "SPY", n: 125, mean: 51.3, sd: 5.4, lag1: 0.898 },
-  { tkr: "AAPL", n: 126, mean: 29.9, sd: 13.1, lag1: 0.885 },
-  { tkr: "NVDA", n: 119, mean: 9.6, sd: 13.3, lag1: 0.456 },
-  { tkr: "TSLA", n: 125, mean: -5.0, sd: 10.0, lag1: 0.048, control: true },
+  { tkr: "SPY", n: 197, mean: 53.5, sd: 5.6, lag1: 0.918 },
+  { tkr: "AAPL", n: 198, mean: 27.4, sd: 12.0, lag1: 0.857 },
+  { tkr: "NVDA", n: 187, mean: 11.5, sd: 11.2, lag1: 0.479 },
+  { tkr: "TSLA", n: 196, mean: -4.4, sd: 8.1, lag1: 0.059, control: true },
 ];
 
 const MAX_YIELD = 100;
@@ -103,17 +103,17 @@ export default function FindingsPage() {
         <p className="mt-6 max-w-xl border-l-2 border-gold/40 pl-4 text-[14px] leading-relaxed text-ink-dim">
           Tesla is what makes the rest readable. Every stock carrying a premium predicts
           itself three minutes later at{" "}
-          <span className="tabular text-ink">0.89</span>. Tesla, which carries none,
-          sits at <span className="tabular text-ink">0.05</span> — indistinguishable from
+          <span className="tabular text-ink">0.86 to 0.92</span>. Tesla, which carries none,
+          sits at <span className="tabular text-ink">0.06</span> — indistinguishable from
           noise. The sampler finds structure where a premium exists and none where it does
           not, which is what rules out our own measurement as the thing producing it.
         </p>
 
         <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-ink-faint">
-          495 usable samples over 6.7 hours in two sessions. Two were discarded where the
-          two quote legs disagreed by more than 1%, meaning they had not seen the same
-          market; the 99th percentile of every other sample is 0.82%. Premium correlates
-          with oracle staleness at −0.33 to +0.08, so a stale price is not producing it.
+          778 usable samples over 10.4 hours in two sessions. Three were discarded by a
+          stated 1% spread rule — one a genuine after-hours route failure at 36%, two
+          merely wide at 1.2%; the 99th percentile of every other sample is 0.80%. Premium
+          correlates with oracle staleness at −0.35 to +0.06, so a stale price is not it.
           This is intraday evidence only — we have no overnight or weekend coverage.
         </p>
       </section>

@@ -40,25 +40,27 @@ asks a better question — does each sample predict the next?
 
 | tkr | premium | persistence (lag-1) |
 |---|---|---|
-| SPY | 51.3 ± 5.4 bp | **0.898** |
-| AAPL | 29.9 ± 13.1 bp | **0.885** |
-| NVDA | 9.6 ± 13.3 bp | 0.456 |
-| TSLA | −5.0 ± 10.0 bp | **0.048** |
+| SPY | 53.5 ± 5.6 bp | **0.918** |
+| AAPL | 27.4 ± 12.0 bp | **0.857** |
+| NVDA | 11.5 ± 11.2 bp | 0.479 |
+| TSLA | −4.4 ± 8.1 bp | **0.059** |
 
 **TSLA is the control that makes the rest readable.** Every ticker carrying a premium
-predicts itself three minutes later at ~0.89. TSLA, which carries none, sits at 0.05 —
+predicts itself three minutes later at ~0.86 to 0.92. TSLA, which carries none, sits at 0.06 —
 indistinguishable from noise. The instrument finds structure where a premium exists and
 finds none where it does not, which rules out the measurement itself as the source.
 
 Two robustness checks:
 
 - **Oracle staleness is not producing it.** Premium against the oracle's own age
-  correlates −0.33 to +0.08. A stale-price artifact would be strongly positive.
-- **Two samples discarded**, where the buy and sell legs disagreed by more than 1% and so
-  had not seen the same market. The 99th percentile of every other sample is 0.82%.
+  correlates −0.35 to +0.06. A stale-price artifact would be strongly positive.
+- **Three samples discarded** by a stated 1% spread rule. One is a genuine after-hours
+  route failure at a 36% implied spread; the other two are merely wide, at ~1.2%. The
+  99th percentile of every other sample is 0.80%.
 
-495 usable samples over **6.7 hours across two sessions** — intraday only, with no
-overnight or weekend coverage. Reproduce with `npx tsx scripts/analyze-basis.ts`.
+778 usable samples over **10.4 hours across two sessions**, as of 2026-09-22 — intraday
+only, with no overnight or weekend coverage. The sampler is still running, so a fresh run
+reports more samples than the table above. Reproduce with `npx tsx scripts/analyze-basis.ts`.
 
 ### We tried to explain it, and could not
 
