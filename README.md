@@ -1,7 +1,23 @@
 # Closing Bell
 
-**The true cost of a tokenized stock trade is pool impact plus a wrapper premium, and only
-one of the two is shown anywhere.**
+**A Solana program that refuses a tokenized-stock fill priced too far from the equity it
+wraps — checked on-chain, at settlement, after the swap has already executed.**
+
+Tokenized stocks trade at a premium to the shares they track. It is measurable, it
+reproduces, and no quote anywhere shows it. Measuring that gap is the easy half, and
+several tools now do it. The hard half is that a number on a screen only helps whoever is
+reading the screen — so here the band is enforced inside a program, and a fill outside it
+reverts.
+
+Measured live across the four wrappers this repo tracks: **$721,000 of premium sits inside
+$286m of circulating tokenized stock**, and not one quote displays a cent of it. TSLAx,
+which carries no premium, contributes **−$17,000** — the control holds even in aggregate.
+
+That is premium *carried*, not losses taken, and circulating supply includes the pools' own
+inventory. Both caveats are printed with the number: `npx tsx scripts/aggregate-premium.ts`.
+
+**[Live demo](https://closing-bell-eight.vercel.app)** — the `/proof` page sends a real
+devnet transaction on click and shows you the program rejecting it.
 
 ![True cost breakdown](docs/img/truecost.png)
 
@@ -185,9 +201,18 @@ solana-test-validator --url https://api.mainnet-beta.solana.com \
 
 ## Honest limits
 
-- **Deployed to devnet, not mainnet.** The enforcement path is real and publicly
-  verifiable, but against test mints and a crypto reference feed rather than a live xStock
-  market.
+- **Deployed to devnet, not mainnet** — a deliberate call, not an unfinished one. A
+  program this size costs roughly **3.7 SOL** to deploy to mainnet, which this project
+  does not have. The enforcement path is real and publicly verifiable, but it runs against
+  test mints and a crypto reference feed rather than a live xStock market.
+
+  The substitute costs nothing and is committed: `scripts/fork-mainnet.sh` boots a local
+  validator forked from mainnet carrying the **real Raydium CLMM pool SPYx trades in**, the
+  real Pyth SPY feed and the real Token-2022 mint. The forked price account is byte-identical
+  to mainnet; the pool differs only by trades that landed after the fork point. The account
+  set is derived rather than hand-written — `scripts/derive-clone-set.ts` asks Jupiter to
+  build a real swap and reads back every account it touches, which is why no tick arrays are
+  guessed at.
 - **The basis is keeper-supplied**, because the source feeds are not maintained on-chain:
   `Crypto.*X/USD` was 5.8 days stale and `Crypto.*X/*.RR` ~59 days stale, shard 0 only. It
   is bounded in-program rather than trusted — a 300 bp ceiling against measured values of
@@ -205,6 +230,41 @@ solana-test-validator --url https://api.mainnet-beta.solana.com \
 - **The guard binds only transactions that include its two instructions.** For your own
   users that holds by construction; as a protocol others integrate, it is an instruction
   they append, not protection for a pool as a whole.
+
+## What happens after the hackathon
+
+The guard is a primitive, not an app — it is the seatbelt, not the car. That shapes what
+is worth doing next.
+
+**Who needs it first, with the numbers attached:**
+
+- **Liquidation engines holding tokenized stock as collateral.** A liquidation priced
+  against the pool rather than the equity mis-marks by the premium. At SPYx's measured
+  58 bp that is **~$580 per $100,000 liquidated**, in the liquidator's favour and against
+  the borrower, every time, silently.
+- **DCA and treasury bots.** They never read a quote, so a warning in a UI cannot reach
+  them. They are also the case where the premium compounds: buying weekly at a premium
+  that averages 51 bp is a standing cost nothing on their dashboard reports.
+- **Anything routing size.** The premium does not shrink with better execution, because it
+  is not execution — it is present at one share and at ten thousand.
+
+**What ships next, in order:**
+
+1. **Mainnet deploy** (~3.7 SOL) and switch the reference from `Crypto.SOL/USD` to the
+   `Equity.US.*` feeds. No program logic changes; the mainnet fork already exercises this
+   path against the real pool.
+2. **Retire the keeper-supplied basis.** It is bounded in-program rather than trusted, but
+   it is still the weakest link in the design. Pyth's `Crypto.*X/*.RR` feeds would close it
+   outright if maintained on mainnet at a fresh shard — as of measurement they were ~59
+   days stale on shard 0 only. This is the one dependency outside our control.
+3. **One integration.** A primitive with zero integrations is a demo. The honest next step
+   is a single lending protocol or execution bot wiring `record_pre_state` / `verify_fill`
+   around its existing swap, which requires no change to how they route.
+
+**What would tell us to stop:** if the premium converges as redemption opens to more
+participants, the band stops binding and the guard becomes dead weight. That is a real
+possibility and it is worth saying out loud. The measurement infrastructure would still
+have been the thing that told us.
 
 ## A pattern worth naming: the evidence broke twice, the code didn't
 
