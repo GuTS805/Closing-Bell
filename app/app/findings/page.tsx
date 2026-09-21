@@ -30,6 +30,13 @@ const ROWS: Row[] = [
   },
 ];
 
+const SERIES = [
+  { tkr: "SPY", n: 125, mean: 51.3, sd: 5.4, lag1: 0.898 },
+  { tkr: "AAPL", n: 126, mean: 29.9, sd: 13.1, lag1: 0.885 },
+  { tkr: "NVDA", n: 119, mean: 9.6, sd: 13.3, lag1: 0.456 },
+  { tkr: "TSLA", n: 125, mean: -5.0, sd: 10.0, lag1: 0.048, control: true },
+];
+
 const MAX_YIELD = 100;
 const MAX_PREMIUM = 60;
 
@@ -53,6 +60,63 @@ export default function FindingsPage() {
         measured, including the parts that do not fit.
       </p>
 
+      {/* the premium as a series, not a snapshot */}
+      <section className="mt-14">
+        <h2 className="font-display text-[19px] text-ink">First, is it even stable?</h2>
+        <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-dim">
+          Everything below this is one measurement per stock at one moment, which cannot
+          tell a structural premium from a number that happened to be there when we
+          looked. So we sampled every three minutes and asked a different question: does
+          each sample predict the next one?
+        </p>
+
+        <div className="mt-7">
+          <div className="flex items-baseline gap-4 border-b border-rule pb-2 text-[12px] text-ink-faint">
+            <span className="w-14 shrink-0">stock</span>
+            <span className="w-28 shrink-0">premium</span>
+            <span className="flex-1">persistence</span>
+          </div>
+
+          {SERIES.map((r) => (
+            <div key={r.tkr} className="border-b border-rule py-3">
+              <div className="flex items-center gap-4">
+                <span className="w-14 shrink-0 text-[13px] text-ink">{r.tkr}</span>
+                <span className="tabular w-28 shrink-0 text-[13px] text-ink-dim">
+                  {r.mean.toFixed(1)} ± {r.sd.toFixed(1)} bp
+                </span>
+                <Bar
+                  value={r.lag1 * 100}
+                  max={100}
+                  label={r.lag1.toFixed(2)}
+                  tone={r.control ? "red" : "gold"}
+                />
+              </div>
+              {r.control ? (
+                <p className="mt-2 pl-[4.5rem] text-[12px] text-signal-red">
+                  control: the one stock with no premium, and the only one with no structure
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-6 max-w-xl border-l-2 border-gold/40 pl-4 text-[14px] leading-relaxed text-ink-dim">
+          Tesla is what makes the rest readable. Every stock carrying a premium predicts
+          itself three minutes later at{" "}
+          <span className="tabular text-ink">0.89</span>. Tesla, which carries none,
+          sits at <span className="tabular text-ink">0.05</span> — indistinguishable from
+          noise. The sampler finds structure where a premium exists and none where it does
+          not, which is what rules out our own measurement as the thing producing it.
+        </p>
+
+        <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-ink-faint">
+          495 usable samples over 6.7 hours in two sessions. Two were discarded where the
+          two quote legs disagreed by more than 1%, meaning they had not seen the same
+          market; the 99th percentile of every other sample is 0.82%. Premium correlates
+          with oracle staleness at −0.33 to +0.08, so a stale price is not producing it.
+          This is intraday evidence only — we have no overnight or weekend coverage.
+        </p>
+      </section>
       {/* correlation, shown rather than asserted */}
       <section className="mt-14">
         <h2 className="font-display text-[19px] text-ink">

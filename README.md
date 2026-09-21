@@ -32,6 +32,34 @@ quote. A $50,000 SPYx buy shows **+0.06% impact** and costs **+0.58% against SPY
 invisible term is roughly ten times the visible one, and unlike impact it is present at
 every size, including one share.
 
+### It is a persistent state, not a number
+
+The table above is one measurement per ticker at one moment, which cannot separate a
+structural premium from whatever happened to be on screen. Sampling every three minutes
+asks a better question — does each sample predict the next?
+
+| tkr | premium | persistence (lag-1) |
+|---|---|---|
+| SPY | 51.3 ± 5.4 bp | **0.898** |
+| AAPL | 29.9 ± 13.1 bp | **0.885** |
+| NVDA | 9.6 ± 13.3 bp | 0.456 |
+| TSLA | −5.0 ± 10.0 bp | **0.048** |
+
+**TSLA is the control that makes the rest readable.** Every ticker carrying a premium
+predicts itself three minutes later at ~0.89. TSLA, which carries none, sits at 0.05 —
+indistinguishable from noise. The instrument finds structure where a premium exists and
+finds none where it does not, which rules out the measurement itself as the source.
+
+Two robustness checks:
+
+- **Oracle staleness is not producing it.** Premium against the oracle's own age
+  correlates −0.33 to +0.08. A stale-price artifact would be strongly positive.
+- **Two samples discarded**, where the buy and sell legs disagreed by more than 1% and so
+  had not seen the same market. The 99th percentile of every other sample is 0.82%.
+
+495 usable samples over **6.7 hours across two sessions** — intraday only, with no
+overnight or weekend coverage. Reproduce with `npx tsx scripts/analyze-basis.ts`.
+
 ### We tried to explain it, and could not
 
 The premium orders by dividend yield and is **exactly zero** for the one ticker in the set
