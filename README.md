@@ -12,7 +12,7 @@ reverts.
 Across the four wrappers this repo tracks, that comes to roughly **$600,000 of premium
 inside $287m of circulating supply** — and not one quote displays a cent of it.
 
-That figure applies each ticker's mean premium over 895 measurements to today's supply,
+That figure applies each ticker's mean premium over 1,025 measurements to today's supply,
 rather than a single probe. A single probe is not stable enough to quote: after hours, two
 runs a minute apart have disagreed by 18 bp on TSLA and by $300,000 on the total. The
 script prints both rows so the difference is visible rather than hidden, along with the two
@@ -63,27 +63,30 @@ asks a better question — does each sample predict the next?
 
 | tkr | premium | persistence (lag-1) |
 |---|---|---|
-| SPY | 53.9 ± 5.4 bp | **0.912** |
-| AAPL | 27.9 ± 11.6 bp | **0.848** |
-| NVDA | 11.9 ± 10.6 bp | 0.486 |
-| TSLA | −4.0 ± 8.1 bp | **0.045** |
+| SPY | 54.9 ± 5.9 bp | **0.929** |
+| AAPL | 27.4 ± 11.1 bp | **0.846** |
+| NVDA | 12.3 ± 10.5 bp | 0.439 |
+| TSLA | −3.5 ± 8.6 bp | **0.034** |
 
 **TSLA is the control that makes the rest readable.** Every ticker carrying a premium
-predicts itself three minutes later at ~0.85 to 0.91. TSLA, which carries none, sits at 0.05 —
+predicts itself three minutes later at 0.85 or better. TSLA, which carries none, sits at 0.03 —
 indistinguishable from noise. The instrument finds structure where a premium exists and
 finds none where it does not, which rules out the measurement itself as the source.
 
 Two robustness checks:
 
 - **Oracle staleness is not producing it.** Premium against the oracle's own age
-  correlates −0.36 to +0.04. A stale-price artifact would be strongly positive.
+  correlates −0.34 to +0.02. A stale-price artifact would be strongly positive.
 - **Three samples discarded** by a stated 1% spread rule. One is a genuine after-hours
   route failure at a 36% implied spread; the other two are merely wide, at ~1.2%. The
   99th percentile of every other sample is 0.80%.
 
-895 usable samples over **11.9 hours across four sessions**, as of 2026-09-22 — intraday
-only, with no overnight or weekend coverage. The sampler is still running, so a fresh run
-reports more samples than the table above. Reproduce with `npx tsx scripts/analyze-basis.ts`.
+1,025 usable samples over **13.5 hours across five sessions**, as of 2026-09-22 — intraday
+only, with no overnight or weekend coverage. That is where the series stood when these
+figures were taken. The sampler appends rather than overwrites, so a fresh analysis reports
+a larger set and means that have moved a little — the shape holds, the last digit does not.
+Reproduce with `npx tsx scripts/analyze-basis.ts`; sample again with
+`keeper/run-sampler.cmd`.
 
 ### We tried to explain it, and could not
 

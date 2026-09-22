@@ -36,12 +36,12 @@ const MARKETS = [
  * Refresh these together with the figures quoted in the README.
  */
 const SAMPLED_MEAN_BPS: Record<string, number> = {
-  SPYx: 53.9,
-  AAPLx: 27.9,
-  TSLAx: -4.0,
-  NVDAx: 11.9,
+  SPYx: 54.9,
+  AAPLx: 27.4,
+  TSLAx: -3.5,
+  NVDAx: 12.3,
 };
-const SAMPLE_COUNT = 895;
+const SAMPLE_COUNT = 1025;
 
 function priceFeedAccount(shard: number, feedIdHex: string) {
   const b = Buffer.alloc(2);
