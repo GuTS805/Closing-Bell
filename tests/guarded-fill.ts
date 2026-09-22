@@ -266,7 +266,10 @@ async function main() {
   // balance history that has nothing to do with this trade.
   console.log("--- G verify against a substituted token account");
   {
-    const altBase = await createAccount(conn, payer, baseMint, payer.publicKey);
+    // Needs an explicit keypair: without one this creates the associated account, which
+    // userBase already is, so the substitution never happens and the ATA program rejects
+    // the duplicate before the guard is ever reached.
+    const altBase = await createAccount(conn, payer, baseMint, payer.publicKey, Keypair.generate());
     await mintTo(conn, payer, baseMint, altBase, payer, 1_000_000_000n);
 
     const swapAmount = 1n * 10n ** BigInt(BASE_DECIMALS);

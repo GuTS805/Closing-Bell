@@ -220,7 +220,7 @@ its own.
 |---|---|
 | Pyth read + band derivation | 3,369 CU |
 | Full guarded fill | ~33,000 CU |
-| Test suite | 6 cases, all passing |
+| Test suite | 8 cases, all passing |
 
 ### Live on devnet — click the rejection
 
@@ -249,22 +249,39 @@ assuming the centre is exact.
 
 ### Running the tests
 
+Eight cases, and all eight pass from a clean clone. Reproducing that takes three terminals'
+worth of setup, so the exact commands are here rather than an `anchor test` that does not
+work on its own.
+
 ```bash
-anchor build && npx tsx tests/guarded-fill.ts   # needs a local validator, see below
+anchor build
+anchor keys sync          # a clean clone generates its own program keypair
+anchor build              # declare_id! changed, so build again
+
+# terminal 2 — the mainnet Pyth account has to be cloned in
+solana-test-validator --reset --url https://api.mainnet-beta.solana.com \
+  --clone D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW \
+  --clone XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp
+
+# back in terminal 1
+solana airdrop 100 --url http://127.0.0.1:8899
+export PROGRAM_ID=$(solana address -k target/deploy/closing_bell_guard-keypair.json)
+anchor test --skip-local-validator
 ```
+
+Two things will bite otherwise. `anchor test` on its own tries to spawn `surfpool` and dies
+if it is not installed, which is why the validator is started by hand and
+`--skip-local-validator` is passed. And `PROGRAM_ID` has to be exported: the test falls back
+to the devnet address, which is not what a clean clone just deployed.
 
 Cases: fill at oracle (allowed), 6.8% above (reverts, balances roll back), 1.5% above
 (allowed inside band), sell 6.8% below (reverts — the band is symmetric), snapshot with no
 swap (`NoFillDetected`, not a divide-by-zero), keeper basis above the ceiling
-(`BasisOutOfBounds`).
+(`BasisOutOfBounds`), `verify_fill` pointed at a substituted token account
+(`TokenAccountMismatch`), and `cancel_pending` reclaiming a stray snapshot.
 
-The local validator needs the mainnet Pyth account cloned in:
-
-```bash
-solana-test-validator --url https://api.mainnet-beta.solana.com \
-  --clone D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW \
-  --bpf-program <PROGRAM_ID> target/deploy/closing_bell_guard.so --reset
-```
+An allowed fill has measured between 30,300 and 34,900 CU across runs; the arithmetic
+depends on the live oracle price, so the figure moves a little each time.
 
 ## Honest limits
 
@@ -363,7 +380,7 @@ Full measured record, including where evidence contradicted the original design:
 programs/closing-bell-guard/   Anchor program: config, market, clock, record/verify
 app/                           Next.js true-cost frontend
 scripts/deploy-devnet.ts       Devnet setup + the blocked-fill transaction
-tests/guarded-fill.ts          Six enforcement cases
+tests/guarded-fill.ts          Eight enforcement cases
 replay/pool-vs-equity.ts       The basis measurement above
 replay/depth-at-size.ts        Depth across notional tiers and thin names
 keeper/sample-feed-freshness.ts  Is the Pyth push path needed at all?
