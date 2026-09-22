@@ -30,6 +30,19 @@ const MARKETS = [
   { tkr: "NVDAx", mint: "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh", feedId: "b1073854ed24cbc755dc527418f52b7d271f6cc967bbf8d8129112b18860a593", decimals: 8 },
 ];
 
+
+/**
+ * Mean premium per ticker over the sampler's full series, from scripts/analyze-basis.ts.
+ * Refresh these together with the figures quoted in the README.
+ */
+const SAMPLED_MEAN_BPS: Record<string, number> = {
+  SPYx: 53.9,
+  AAPLx: 27.9,
+  TSLAx: -4.0,
+  NVDAx: 11.9,
+};
+const SAMPLE_COUNT = 895;
+
 function priceFeedAccount(shard: number, feedIdHex: string) {
   const b = Buffer.alloc(2);
   b.writeUInt16LE(shard, 0);
@@ -68,6 +81,7 @@ async function main() {
 
   let totalValue = 0;
   let totalPremium = 0;
+  const values: Record<string, number> = {};
 
   console.log("tkr     supply        market value      premium bp     premium carried");
 
@@ -90,6 +104,7 @@ async function main() {
     const value = supply * mid;
     const premium = value - supply * oracle;
 
+    values[m.tkr] = value;
     totalValue += value;
     totalPremium += premium;
 
@@ -104,9 +119,29 @@ async function main() {
 
   console.log("-".repeat(69));
   console.log(
-    "total".padEnd(17) + usd(totalValue).padStart(18) + usd(totalPremium).padStart(34)
+    "spot".padEnd(17) + usd(totalValue).padStart(18) + usd(totalPremium).padStart(34)
   );
+
+  // A single mid probe is one measurement, and outside market hours it is a noisy one —
+  // consecutive runs have disagreed by 18 bp on TSLA and by $300k on the total. Quoting a
+  // spot figure as though it were a property of the market would be the same mistake as
+  // the cross-sectional table this repo already warns about, so the headline number uses
+  // the sampled means instead and the spot reading is shown next to it for comparison.
+  let sampledPremium = 0;
+  for (const m of MARKETS) {
+    const mean = SAMPLED_MEAN_BPS[m.tkr];
+    const value = values[m.tkr] ?? 0;
+    if (mean !== undefined) sampledPremium += (value * mean) / 10_000;
+  }
+  console.log(
+    "at sampled means".padEnd(17) + "".padStart(18) + usd(sampledPremium).padStart(34)
+  );
+
   console.log(`
+The sampled-means row is the one worth quoting: it applies each ticker's mean premium over
+${SAMPLE_COUNT} measurements to today's supply, rather than trusting a single probe. The spot row
+above it is one probe, and after hours it moves by hundreds of thousands between runs.
+
 Premium CARRIED, not lost: the tokens are worth pool mid on-chain, and the gap becomes
 real only on conversion or if the premium converges. Circulating supply also includes the
 pools' own inventory, so part of this is the market making the price.`);

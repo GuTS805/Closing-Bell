@@ -9,12 +9,19 @@ several tools now do it. The hard half is that a number on a screen only helps w
 reading the screen — so here the band is enforced inside a program, and a fill outside it
 reverts.
 
-Measured live across the four wrappers this repo tracks: **$721,000 of premium sits inside
-$286m of circulating tokenized stock**, and not one quote displays a cent of it. TSLAx,
-which carries no premium, contributes **−$17,000** — the control holds even in aggregate.
+Across the four wrappers this repo tracks, that comes to roughly **$600,000 of premium
+inside $287m of circulating supply** — and not one quote displays a cent of it.
 
-That is premium *carried*, not losses taken, and circulating supply includes the pools' own
-inventory. Both caveats are printed with the number: `npx tsx scripts/aggregate-premium.ts`.
+That figure applies each ticker's mean premium over 895 measurements to today's supply,
+rather than a single probe. A single probe is not stable enough to quote: after hours, two
+runs a minute apart have disagreed by 18 bp on TSLA and by $300,000 on the total. The
+script prints both rows so the difference is visible rather than hidden, along with the two
+caveats that matter — it is premium *carried* rather than losses taken, and circulating
+supply includes the pools' own inventory.
+
+```bash
+npx tsx scripts/aggregate-premium.ts
+```
 
 **[Live demo](https://closing-bell-eight.vercel.app)** — the `/proof` page sends a real
 devnet transaction on click and shows you the program rejecting it.
