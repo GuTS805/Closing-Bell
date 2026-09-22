@@ -5,6 +5,7 @@ import PageMotion from "./components/PageMotion";
 import WalletContextProvider from "./components/WalletContextProvider";
 import Link from "next/link";
 import "./globals.css";
+import "./research.css";
 
 const displayFont = Manrope({
   variable: "--font-heading",

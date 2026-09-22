@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ChartReadout from "./ChartReadout";
 
 /**
  * The premium over time, which is the finding the rest of the page only asserts.
@@ -82,7 +83,7 @@ export default function BasisChart({ data }: Props) {
   return (
     <figure className="research-series m-0">
       <div className="research-chart-heading"><h3>Premium over the sampling period</h3><span>Basis points · session gaps removed</span></div>
-      <div className="research-series-scroll">
+      <ChartReadout width={W} height={H} label="Premium samples" crosshair points={ORDER.filter(sym => !selected || selected === sym).flatMap(sym => (data.series[sym] ?? []).flat().map((p, i) => ({ x: x(i), y: y(p.bps), text: `Sample ${i + 1} / ${sym} / ${p.bps} bp` })))} >
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full"
@@ -222,7 +223,7 @@ export default function BasisChart({ data }: Props) {
           bp
         </text>
       </svg>
-      </div>
+      </ChartReadout>
 
       <figcaption className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-ink-faint">
         {ORDER.map((sym) => (

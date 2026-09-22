@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ChartReadout from "./ChartReadout";
 import type { TradeSizeCurveResult } from "../lib/truecost";
 
 export default function TradeSizeChart({ ticker }: { ticker: string }) {
@@ -49,14 +50,14 @@ export default function TradeSizeChart({ ticker }: { ticker: string }) {
       {!data && !loading && !error && <p className="curve-message">Run a quote sweep to see measured values for {ticker}.</p>}
     </div>
     {data && <figure className="evidence-chart">
-      <div className="evidence-chart-scroll"><svg viewBox="0 0 720 345" role="img" aria-label={`Premium and pool impact by trade size for ${ticker}. Exact quotes and unavailable sizes are listed below.`}>
+      <ChartReadout width={720} height={345} label="Trade-size quotes" duplicated points={data.points.flatMap(p => p.impactBps === null ? [] : [{ x: x(p.notional), y: y(p.impactBps), text: `${p.label} / ${p.impactBps} bp impact / ${data.premiumBps} bp premium` }])}><svg viewBox="0 0 720 345" role="img" aria-label={`Premium and pool impact by trade size for ${ticker}. Exact quotes and unavailable sizes are listed below.`}>
         {Array.from({ length: 5 }, (_, i) => min + (max-min)*i/4).map(v => <g key={v}><line x1="65" x2="630" y1={y(v)} y2={y(v)} stroke="var(--rule)"/><text x="53" y={y(v)+4} textAnchor="end">{v.toFixed(1)}</text></g>)}
         <line x1="65" x2="630" y1={y(0)} y2={y(0)} stroke="var(--ink-faint)" strokeDasharray="3 4"/>
         <line x1="65" x2="630" y1={y(data.premiumBps)} y2={y(data.premiumBps)} stroke="var(--gold)" strokeWidth="2.5" strokeDasharray="7 4"/>
         <path d={path} fill="none" stroke="var(--blue)" strokeWidth="2.5"/>
         {data.points.map(p => <g key={p.label}>{p.impactBps !== null && <circle cx={x(p.notional)} cy={y(p.impactBps)} r="5" fill="var(--blue)"><title>{`${p.label}: ${p.impactBps.toFixed(2)} bp impact`}</title></circle>}<text x={x(p.notional)} y="299" textAnchor="middle">{p.label}</text></g>)}
         <text x="65" y="23">Basis points</text><text x="350" y="331" textAnchor="middle">Trade notional in USD (logarithmic scale)</text>
-      </svg></div>
+      </svg></ChartReadout>
       <div className="curve-legend"><span><i style={{ background: "var(--gold)" }}/>Wrapper premium (shared baseline)</span><span><i style={{ background: "var(--blue)" }}/>Pool impact (quoted fills)</span></div>
       <figcaption className="research-footnote">The premium line is flat by construction: all fills use the same measured pool mid and underlying price. Impact includes spread and is not forced to rise. Quotes are collected over a window, not simultaneously; connecting lines are guides, not additional quotes. Missing quotes leave gaps. The smallest budget equals one token at the reference mid; actual tokens received may differ.</figcaption>
       <p className="research-footnote">Quote window: {data.startedAt} to {data.capturedAt}. Oracle age at reference: {data.oracleAgeSecs}s.</p>

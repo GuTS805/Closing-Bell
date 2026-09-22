@@ -148,7 +148,7 @@ function Outcome({ r }: { r: RunResult }) {
         {r.computeUnits !== null ? (
           <span>
             <span className="tabular text-ink-dim">
-              {r.computeUnits.toLocaleString()}
+              {r.computeUnits.toLocaleString("en-US")}
             </span>{" "}
             compute units
           </span>

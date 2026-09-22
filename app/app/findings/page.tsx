@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ChartReadout from "../components/ChartReadout";
 import ExDividendChart from "../components/ExDividendChart";
 import BasisChart from "../components/BasisChart";
 import seriesData from "../../public/basis-series.json";
@@ -146,6 +147,7 @@ export default function FindingsPage() {
         <div className="research-evidence-grid">
           <figure className="research-plot">
             <div className="research-chart-heading"><h3>Dividend yield vs premium</h3><span>6-stock snapshot</span></div>
+            <ChartReadout width={480} height={320} label="Dividend yield and premium" duplicated points={ROWS.map(r => ({ x: 50+r.yieldBps*3.65, y: 260-r.premiumBps*3.5, text: `${r.tkr} / ${(r.yieldBps / 100).toFixed(2)}% yield / ${r.premiumBps} bp premium` }))}>
             <svg viewBox="0 0 480 320" role="img" aria-label="Scatter plot of the six reported dividend yields and premiums. Exact values are in the adjacent table.">
               {[0,20,40,60].map(v => <g key={v}><line x1="50" x2="435" y1={260-v*3.5} y2={260-v*3.5} stroke="var(--rule)"/><text x="40" y={264-v*3.5} textAnchor="end">{v}</text></g>)}
               {[0,25,50,75,100].map(v => <g key={v}><line x1={50+v*3.65} x2={50+v*3.65} y1="40" y2="260" stroke="var(--rule)" strokeDasharray="3 5"/><text x={50+v*3.65} y="282" textAnchor="middle">{(v/100).toFixed(2)}%</text></g>)}
@@ -153,6 +155,7 @@ export default function FindingsPage() {
               <line x1="50" x2="415" y1={260-fittedPremium(0)*3.5} y2={260-fittedPremium(100)*3.5} stroke="var(--ink-faint)" strokeWidth="1.5" strokeDasharray="6 5" />
               {ROWS.map(r => <g key={r.tkr}>{r.breaks && <circle cx={50+r.yieldBps*3.65} cy={260-r.premiumBps*3.5} r="12" fill="none" stroke="var(--red)" strokeWidth="1.5" />}<circle cx={50+r.yieldBps*3.65} cy={260-r.premiumBps*3.5} r="6" fill={r.breaks ? "var(--red)" : "var(--gold)"}><title>{`${r.tkr}: ${(r.yieldBps/100).toFixed(2)}% yield, ${r.premiumBps} bp premium`}</title></circle><text x={50+r.yieldBps*3.65+(["SPY", "AAPL"].includes(r.tkr) ? -12 : 10)} y={260-r.premiumBps*3.5-10} textAnchor={["SPY", "AAPL"].includes(r.tkr) ? "end" : "start"} className="research-point-label">{r.tkr}</text></g>)}
             </svg>
+            </ChartReadout>
             <figcaption>Dashed line: ordinary least-squares fit across all six stocks, with an intercept. Circled NVDA falls below the dividend trend. Circled TSLA is the zero-yield control that challenges the size/demand explanation; it does not break the dividend trend. Correlation is not a causal explanation.</figcaption>
           </figure>
           <div className="research-table-wrap">
