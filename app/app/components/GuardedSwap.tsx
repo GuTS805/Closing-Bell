@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { VersionedTransaction } from "@solana/web3.js";
 
 /**
  * The band, applied to a real mainnet trade.
  *
- * Nothing here signs or submits. It asks the server to derive the band and, when the trade
- * fits inside it, to build the transaction that carries it — then decodes that transaction
- * and shows the threshold Jupiter's route instruction will enforce on-chain. The point is
- * that the number is checkable rather than claimed.
+ * The server derives the band, and where the trade fits inside it, builds the transaction
+ * carrying that threshold and simulates it against live mainnet state. Everything up to
+ * the signature costs nothing, so the number can be checked before anyone commits funds.
+ *
+ * Signing is the one step that spends, and it is offered only after the same transaction
+ * has simulated cleanly — a signature is never requested for a fill already known not to
+ * land. The wallet signs; this never holds a key.
  *
  * A refusal is the product working, so it is rendered as a result and not as an error.
  */
@@ -21,6 +27,20 @@ interface Derivation {
   buildable: boolean;
   quotedDeviationBps: number;
   refusal: string | null;
+}
+
+interface Simulation {
+  ok: boolean;
+  reason: "ok" | "insufficient-funds" | "band-rejected" | "failed";
+  message: string;
+}
+
+interface BuildResult {
+  refused: boolean;
+  reason?: string;
+  derivation: Derivation;
+  simulation?: Simulation;
+  swapTransaction?: string;
 }
 
 interface Quote {
@@ -44,12 +64,22 @@ export default function GuardedSwap({ ticker, notional }: { ticker: string; noti
   const [loading, setLoading] = useState(false);
   const controller = useRef<AbortController | null>(null);
 
+  const { publicKey, signTransaction } = useWallet();
+  const { connection } = useConnection();
+  const [build, setBuild] = useState<BuildResult | null>(null);
+  const [busy, setBusy] = useState<null | "checking" | "sending">(null);
+  const [sent, setSent] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+
   useEffect(() => {
     controller.current?.abort();
     const ac = new AbortController();
     controller.current = ac;
     setLoading(true);
     setError(null);
+    setBuild(null);
+    setSent(null);
+    setSendError(null);
 
     fetch(`/api/guarded-swap?ticker=${ticker}&notional=${notional}&band=${bandBps}`, {
       signal: ac.signal,
@@ -72,6 +102,51 @@ export default function GuardedSwap({ ticker, notional }: { ticker: string; noti
 
   const d = quote?.derivation;
   const decimals = 8;
+
+  /** Builds and simulates against live mainnet. Spends nothing and signs nothing. */
+  async function check() {
+    if (!publicKey) return;
+    setBusy("checking");
+    setSendError(null);
+    try {
+      const r = await fetch(`/api/guarded-swap?ticker=${ticker}&notional=${notional}&band=${bandBps}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userPublicKey: publicKey.toBase58() }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.error ?? `HTTP ${r.status}`);
+      setBuild(body as BuildResult);
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : "could not build the transaction");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  /**
+   * Only reachable once the same transaction has simulated cleanly, so the signature is
+   * never requested for a fill already known not to land.
+   */
+  async function sign() {
+    if (!signTransaction || !build?.swapTransaction) return;
+    setBusy("sending");
+    setSendError(null);
+    try {
+      const tx = VersionedTransaction.deserialize(
+        Uint8Array.from(atob(build.swapTransaction), (c) => c.charCodeAt(0)),
+      );
+      const signed = await signTransaction(tx);
+      const signature = await connection.sendRawTransaction(signed.serialize(), {
+        maxRetries: 3,
+      });
+      setSent(signature);
+    } catch (e: unknown) {
+      setSendError(e instanceof Error ? e.message : "the transaction was not sent");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <section className="guarded-swap" aria-live="polite">
@@ -145,9 +220,51 @@ export default function GuardedSwap({ ticker, notional }: { ticker: string; noti
             </div>
           </dl>
 
+          {d.buildable && (
+            <div className="guarded-execute">
+              {!publicKey && (
+                <div className="guarded-connect">
+                  <WalletMultiButton />
+                  <span>Connect a wallet to simulate this fill against live mainnet. Simulating costs nothing.</span>
+                </div>
+              )}
+
+              {publicKey && (
+                <div className="guarded-actions">
+                  <button type="button" className="guarded-action" onClick={check} disabled={busy !== null}>
+                    {busy === "checking" ? "Simulating…" : "Simulate this fill"}
+                  </button>
+                  {build?.simulation?.ok && (
+                    <button type="button" className="guarded-action is-primary" onClick={sign} disabled={busy !== null}>
+                      {busy === "sending" ? "Waiting for the wallet…" : `Sign and send ${usd(notional)}`}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {build?.simulation && (
+                <p className={build.simulation.ok ? "guarded-sim is-ok" : "guarded-sim"}>
+                  {build.simulation.message}
+                </p>
+              )}
+
+              {sendError && <p className="guarded-sim guarded-error">{sendError}</p>}
+
+              {sent && (
+                <p className="guarded-sim is-ok">
+                  Sent.{" "}
+                  <a href={`https://solscan.io/tx/${sent}`} target="_blank" rel="noopener noreferrer">
+                    View the transaction
+                  </a>
+                  . If the fill drifted outside the band it reverts, and nothing moves.
+                </p>
+              )}
+            </div>
+          )}
+
           <p className="guarded-footnote">
             {d.buildable
-              ? "Nothing is signed or submitted here. The transaction is built unsigned so the threshold inside it can be read before anyone commits funds."
+              ? "Simulating is free and spends nothing. Signing sends a real mainnet transaction with your own funds, and is offered only once the same transaction has simulated cleanly."
               : "No transaction is built. Widening the band is a choice this makes you take deliberately, rather than one it takes for you by quietly raising the tolerance."}
             {" "}This path bounds the output amount only. The guard program additionally
             checks oracle staleness, confidence, market clock and keeper basis drift, and

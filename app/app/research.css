@@ -172,3 +172,34 @@ html[data-theme="light"] .findings-page .research-section { background: transpar
   .guarded-figures { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   .guarded-figures dd { font-size: 16px; }
 }
+
+/* Executing the band. The sign button is the only control here that spends, so it is the
+   only one that gets the accent. */
+.guarded-execute { margin-top: 1.75rem; border-top: 1px solid var(--rule); padding-top: 1.25rem; }
+.guarded-connect { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.guarded-connect span { font-size: 12.5px; color: var(--ink-faint); max-width: 42ch; }
+
+.guarded-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+.guarded-action {
+  font-family: var(--font-body), sans-serif; font-size: 13px; padding: .5rem 1rem;
+  border: 1px solid var(--rule-bright); border-radius: 2px; color: var(--ink);
+  background: transparent; cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-out), background var(--motion-fast) var(--ease-out);
+}
+.guarded-action:hover:not(:disabled) { border-color: var(--ink-faint); }
+.guarded-action:disabled { opacity: .5; cursor: default; }
+.guarded-action.is-primary { border-color: var(--gold); color: var(--gold-bright); }
+.guarded-action.is-primary:hover:not(:disabled) { background: color-mix(in oklab, var(--gold) 12%, transparent); }
+
+.guarded-sim { margin-top: .9rem; max-width: 62ch; font-size: 12.5px; line-height: 1.6; color: var(--ink-dim); }
+.guarded-sim.is-ok { color: var(--green); }
+.guarded-sim a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* The wallet adapter ships its own button styling; bring it down to this page's scale.
+   research.css is a plain global stylesheet, so this is a normal descendant selector —
+   :global() is a CSS Modules feature and would be inert here. */
+.guarded-connect .wallet-adapter-button {
+  font-family: var(--font-body), sans-serif; font-size: 13px; height: auto;
+  padding: .5rem 1rem; border-radius: 2px; background: var(--ground-raised);
+  color: var(--ink); line-height: 1.3;
+}

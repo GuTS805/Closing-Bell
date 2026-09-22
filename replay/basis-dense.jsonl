@@ -1046,3 +1046,59 @@
 {"t":1790058475,"sym":"TSLA","oracle":375.26750000000004,"oracleAge":10,"buyBps":3.8412134705416823,"sellBps":-0.48596305210696694,"midBps":1.6776252092166002,"spreadBps":4.327386817659205}
 {"t":1790058475,"sym":"AAPL","oracle":339.5525,"oracleAge":0,"buyBps":33.89298007386818,"sellBps":10.023713283717104,"midBps":21.95834667879348,"spreadBps":23.845364880080727}
 {"t":1790058475,"sym":"NVDA","oracle":226.12102000000002,"oracleAge":-1,"buyBps":23.99769495775755,"sellBps":14.232416643305735,"midBps":19.115055800531014,"spreadBps":9.751399716090333}
+{"t":1790058662,"sym":"SPY","oracle":773.94,"oracleAge":9,"buyBps":51.834227266895624,"sellBps":48.89066320953383,"midBps":50.362445238215464,"spreadBps":2.929242795066537}
+{"t":1790058662,"sym":"TSLA","oracle":375.545,"oracleAge":2,"buyBps":5.5647301216527065,"sellBps":-41.32761469000083,"midBps":-17.881442284174817,"spreadBps":47.086943919175674}
+{"t":1790058662,"sym":"AAPL","oracle":339.475,"oracleAge":-1,"buyBps":37.92764373340657,"sellBps":14.049220695940885,"midBps":25.988432214674567,"spreadBps":23.844922779205415}
+{"t":1790058662,"sym":"NVDA","oracle":226.30540000000002,"oracleAge":0,"buyBps":23.17319604476,"sellBps":13.719629758273996,"midBps":18.446412901517,"spreadBps":9.440614113453274}
+{"t":1790058848,"sym":"SPY","oracle":773.9100000000001,"oracleAge":6,"buyBps":52.5970305865363,"sellBps":50.17215318341613,"midBps":51.38459188497548,"spreadBps":2.4127720064497447}
+{"t":1790058848,"sym":"TSLA","oracle":375.42,"oracleAge":4,"buyBps":43.415870331142706,"sellBps":-2.258014612782243,"midBps":20.578927859180233,"spreadBps":45.68420050315589}
+{"t":1790058848,"sym":"AAPL","oracle":339.375,"oracleAge":7,"buyBps":42.05863059468831,"sellBps":18.33356915683415,"midBps":30.196099875760392,"spreadBps":23.681644531078344}
+{"t":1790058848,"sym":"NVDA","oracle":226.32035000000002,"oracleAge":-2,"buyBps":23.123351052189616,"sellBps":18.752201808493865,"midBps":20.937776430342367,"spreadBps":4.362967718581471}
+{"t":1790059035,"sym":"SPY","oracle":774.07,"oracleAge":5,"buyBps":50.729070619767256,"sellBps":48.18396972549558,"midBps":49.45652017263069,"spreadBps":2.5328963939552533}
+{"t":1790059035,"sym":"TSLA","oracle":375.37,"oracleAge":5,"buyBps":7.802664804122251,"sellBps":-39.25370307610056,"midBps":-15.725519135989153,"spreadBps":47.24180947641932}
+{"t":1790059035,"sym":"AAPL","oracle":339.3,"oracleAge":5,"buyBps":44.89526073114696,"sellBps":21.143643821965576,"midBps":33.019452276556265,"spreadBps":23.70150329481033}
+{"t":1790059035,"sym":"NVDA","oracle":226.38750000000002,"oracleAge":-1,"buyBps":20.39669378346064,"sellBps":-52.47163097373392,"midBps":-16.03746859513727,"spreadBps":73.25269358777152}
+{"t":1790059222,"sym":"SPY","oracle":774.0746200000001,"oracleAge":8,"buyBps":50.688084828427584,"sellBps":48.20224814440679,"midBps":49.44516648641792,"spreadBps":2.473911872623641}
+{"t":1790059222,"sym":"TSLA","oracle":375.41,"oracleAge":4,"buyBps":6.288842582958353,"sellBps":0.07534246641151121,"midBps":3.1820925246849323,"spreadBps":6.2134533028571655}
+{"t":1790059222,"sym":"AAPL","oracle":339.29,"oracleAge":1,"buyBps":45.25713688062307,"sellBps":21.52440825154267,"midBps":33.39077256608287,"spreadBps":23.681755052693685}
+{"t":1790059222,"sym":"NVDA","oracle":226.44499000000002,"oracleAge":9,"buyBps":22.719255878163068,"sellBps":14.709775182414381,"midBps":18.714515530288725,"spreadBps":7.997716234969772}
+{"t":1790059409,"sym":"SPY","oracle":774.0846,"oracleAge":8,"buyBps":48.991523490244454,"sellBps":46.022187180933656,"midBps":47.50685533558979,"spreadBps":2.9557333778336288}
+{"t":1790059409,"sym":"TSLA","oracle":375.52000000000004,"oracleAge":7,"buyBps":4.37756603793124,"sellBps":-1.7525412828255633,"midBps":1.3125123775528384,"spreadBps":6.131181835684758}
+{"t":1790059409,"sym":"AAPL","oracle":339.33000000000004,"oracleAge":10,"buyBps":43.58466761251699,"sellBps":19.74728402391423,"midBps":31.66597581821645,"spreadBps":23.790404002115412}
+{"t":1790059409,"sym":"NVDA","oracle":226.4225,"oracleAge":0,"buyBps":23.962095832640163,"sellBps":16.152667538866062,"midBps":20.05738168575374,"spreadBps":7.796834326500944}
+{"t":1790059597,"sym":"SPY","error":"failed to get info about account CRDaGwcVnKdRNRtx6fjHtvrBgKM5U55AhbqBWhtPMDA: TypeError: fetch failed"}
+{"t":1790059597,"sym":"TSLA","error":"failed to get info about account FQB8c4zB8Emrp9W8bmyk6GanCLq4aRytHYPDAnaEpq9z: TypeError: fetch failed"}
+{"t":1790059597,"sym":"AAPL","error":"failed to get info about account D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW: TypeError: fetch failed"}
+{"t":1790059597,"sym":"NVDA","error":"failed to get info about account 5VETJ8h3p4JrESYrzhjTDAWPEjDjfcnduqe9CjxgqBNd: TypeError: fetch failed"}
+{"t":1790059780,"sym":"SPY","error":"failed to get info about account CRDaGwcVnKdRNRtx6fjHtvrBgKM5U55AhbqBWhtPMDA: TypeError: fetch failed"}
+{"t":1790059780,"sym":"TSLA","error":"failed to get info about account FQB8c4zB8Emrp9W8bmyk6GanCLq4aRytHYPDAnaEpq9z: TypeError: fetch failed"}
+{"t":1790059780,"sym":"AAPL","error":"failed to get info about account D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW: TypeError: fetch failed"}
+{"t":1790059780,"sym":"NVDA","error":"failed to get info about account 5VETJ8h3p4JrESYrzhjTDAWPEjDjfcnduqe9CjxgqBNd: TypeError: fetch failed"}
+{"t":1790059962,"sym":"SPY","error":"failed to get info about account CRDaGwcVnKdRNRtx6fjHtvrBgKM5U55AhbqBWhtPMDA: TypeError: fetch failed"}
+{"t":1790059962,"sym":"TSLA","error":"failed to get info about account FQB8c4zB8Emrp9W8bmyk6GanCLq4aRytHYPDAnaEpq9z: TypeError: fetch failed"}
+{"t":1790059962,"sym":"AAPL","error":"failed to get info about account D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW: TypeError: fetch failed"}
+{"t":1790059962,"sym":"NVDA","error":"failed to get info about account 5VETJ8h3p4JrESYrzhjTDAWPEjDjfcnduqe9CjxgqBNd: TypeError: fetch failed"}
+{"t":1790060155,"sym":"SPY","error":"failed to get info about account CRDaGwcVnKdRNRtx6fjHtvrBgKM5U55AhbqBWhtPMDA: TypeError: fetch failed"}
+{"t":1790060155,"sym":"TSLA","error":"failed to get info about account FQB8c4zB8Emrp9W8bmyk6GanCLq4aRytHYPDAnaEpq9z: TypeError: fetch failed"}
+{"t":1790060155,"sym":"AAPL","error":"failed to get info about account D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW: TypeError: fetch failed"}
+{"t":1790060155,"sym":"NVDA","error":"failed to get info about account 5VETJ8h3p4JrESYrzhjTDAWPEjDjfcnduqe9CjxgqBNd: TypeError: fetch failed"}
+{"t":1790080840,"sym":"SPY","error":"failed to get info about account CRDaGwcVnKdRNRtx6fjHtvrBgKM5U55AhbqBWhtPMDA: TypeError: fetch failed"}
+{"t":1790080840,"sym":"TSLA","error":"failed to get info about account FQB8c4zB8Emrp9W8bmyk6GanCLq4aRytHYPDAnaEpq9z: TypeError: fetch failed"}
+{"t":1790080840,"sym":"AAPL","error":"failed to get info about account D9uk39pqZMcnmtPP9WeC8cREUpKZmyXLga9mSQ79SphW: TypeError: fetch failed"}
+{"t":1790080840,"sym":"NVDA","error":"failed to get info about account 5VETJ8h3p4JrESYrzhjTDAWPEjDjfcnduqe9CjxgqBNd: TypeError: fetch failed"}
+{"t":1790081023,"sym":"SPY","oracle":774.3900000000001,"oracleAge":6,"buyBps":42.73769718840129,"sellBps":41.11646289236222,"midBps":41.927080040382485,"spreadBps":1.6145956498268466}
+{"t":1790081023,"sym":"TSLA","oracle":377.52000000000004,"oracleAge":1,"buyBps":11.47842470940887,"sellBps":4.34554167041749,"midBps":7.911983189912427,"spreadBps":7.129784761313241}
+{"t":1790081023,"sym":"AAPL","oracle":340.54932,"oracleAge":6,"buyBps":28.518953658209373,"sellBps":-5.677002294818662,"midBps":11.420975681696191,"spreadBps":34.21538003212408}
+{"t":1790081023,"sym":"NVDA","oracle":226.40001,"oracleAge":6,"buyBps":23.35438546068009,"sellBps":16.020738084431812,"midBps":19.687561772555327,"spreadBps":7.321917124595371}
+{"t":1790081211,"sym":"SPY","oracle":774.26003,"oracleAge":9,"buyBps":44.666021538768895,"sellBps":42.65096108818851,"midBps":43.6584913134787,"spreadBps":2.006502524470934}
+{"t":1790081211,"sym":"TSLA","oracle":377.51000000000005,"error":"sell quote failed"}
+{"t":1790081211,"sym":"AAPL","oracle":340.47217,"oracleAge":6,"buyBps":31.306710239296763,"sellBps":-3.274393946432401,"midBps":14.016158146431346,"spreadBps":34.5924311104312}
+{"t":1790081211,"sym":"NVDA","oracle":226.33001000000002,"oracleAge":5,"buyBps":24.148039432293924,"sellBps":17.82156403713043,"midBps":20.98480173471218,"spreadBps":6.315220684180319}
+{"t":1790081398,"sym":"SPY","oracle":774.21,"oracleAge":10,"buyBps":46.36505850012507,"sellBps":44.98726483372399,"midBps":45.6761616669238,"spreadBps":1.3716231091945406}
+{"t":1790081398,"sym":"TSLA","oracle":377.70000000000005,"oracleAge":9,"buyBps":7.478017741294268,"sellBps":2.3826302487381765,"midBps":4.93032399501547,"spreadBps":5.09417373931173}
+{"t":1790081398,"sym":"AAPL","oracle":340.23003000000006,"oracleAge":3,"buyBps":38.83113164429481,"sellBps":4.143019804412469,"midBps":21.487075724352803,"spreadBps":34.67374643806373}
+{"t":1790081398,"sym":"NVDA","oracle":226.31500000000003,"oracleAge":0,"buyBps":25.162860632846606,"sellBps":19.748215033422856,"midBps":22.455537833134102,"spreadBps":5.403973715926041}
+{"t":1790081588,"sym":"SPY","oracle":773.975,"oracleAge":6,"buyBps":47.4064025411699,"sellBps":46.50924952867413,"midBps":46.95782603492202,"spreadBps":0.8929997377326486}
+{"t":1790081588,"sym":"TSLA","oracle":377.50002,"oracleAge":4,"buyBps":11.475780689699805,"sellBps":4.39078442315311,"midBps":7.933282556427211,"spreadBps":7.08188676273826}
+{"t":1790081588,"sym":"AAPL","oracle":340.29002,"oracleAge":5,"buyBps":37.12490246421598,"sellBps":2.1936000074094144,"midBps":19.659251235813535,"spreadBps":34.92364160675783}
+{"t":1790081588,"sym":"NVDA","oracle":226.26092000000003,"oracleAge":2,"buyBps":23.38212769349586,"sellBps":15.348747759906065,"midBps":19.36543772670159,"spreadBps":8.021068597722659}

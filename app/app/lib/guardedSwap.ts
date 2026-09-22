@@ -214,3 +214,71 @@ export async function buildGuardedSwap(quote: GuardedQuote, userPublicKey: strin
   if (!built?.swapTransaction) throw new Error(built?.error ?? "no transaction returned");
   return { swapTransaction: built.swapTransaction as string, lastValidBlockHeight: built.lastValidBlockHeight };
 }
+
+/** Jupiter's route instruction rejects a fill under the threshold with this. */
+const JUPITER_SLIPPAGE_ERROR = 6001;
+
+export interface Simulation {
+  ok: boolean;
+  /** Which kind of failure, so the page never reports a funding problem as a band problem. */
+  reason: "ok" | "insufficient-funds" | "band-rejected" | "failed";
+  message: string;
+  unitsConsumed: number | null;
+  logs: string[];
+}
+
+/**
+ * Runs the built transaction against live mainnet state without signing or spending.
+ *
+ * The reason matters more than the pass/fail. An unfunded wallet fails here on balance,
+ * which says nothing about the band, and reporting that as a rejected band would be a lie
+ * in the direction that flatters the project. A fill refused under the threshold fails with
+ * Jupiter's 6001 instead, and that is the case worth showing.
+ */
+export async function simulateGuardedSwap(swapTransaction: string): Promise<Simulation> {
+  const { VersionedTransaction } = await import("@solana/web3.js");
+  const conn = new Connection(RPC, "confirmed");
+  const tx = VersionedTransaction.deserialize(Buffer.from(swapTransaction, "base64"));
+
+  const { value } = await conn.simulateTransaction(tx, {
+    sigVerify: false,
+    replaceRecentBlockhash: true,
+  });
+
+  const logs = value.logs ?? [];
+  if (!value.err) {
+    return {
+      ok: true, reason: "ok", unitsConsumed: value.unitsConsumed ?? null, logs,
+      message: "Simulated against live mainnet state: this fill would land inside the band.",
+    };
+  }
+
+  const text = JSON.stringify(value.err);
+  const joined = logs.join("\n");
+
+  if (joined.includes(`custom program error: 0x${JUPITER_SLIPPAGE_ERROR.toString(16)}`)
+    || joined.includes("SlippageToleranceExceeded")) {
+    return {
+      ok: false, reason: "band-rejected", unitsConsumed: value.unitsConsumed ?? null, logs,
+      message: "The router refused the fill: it would have landed outside the oracle band.",
+    };
+  }
+
+  // AccountNotFound means the wallet has no USDC token account at all, which is the same
+  // problem as an empty one from the trader's point of view and should not be reported as
+  // a bare error code.
+  if (/insufficient (lamports|funds)/i.test(joined)
+    || /InsufficientFunds/i.test(text)
+    || /AccountNotFound/i.test(text)) {
+    return {
+      ok: false, reason: "insufficient-funds", unitsConsumed: value.unitsConsumed ?? null, logs,
+      message: "This wallet does not hold the USDC for the trade, so the fill could not be "
+        + "simulated. The band itself was never tested — fund the wallet to check it.",
+    };
+  }
+
+  return {
+    ok: false, reason: "failed", unitsConsumed: value.unitsConsumed ?? null, logs,
+    message: `Simulation failed before reaching the band check: ${text}`,
+  };
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { MARKETS } from "../../lib/truecost";
-import { getGuardedQuote, buildGuardedSwap, DEFAULT_BAND_BPS, MAX_BAND_BPS } from "../../lib/guardedSwap";
+import { getGuardedQuote, buildGuardedSwap, simulateGuardedSwap, DEFAULT_BAND_BPS, MAX_BAND_BPS } from "../../lib/guardedSwap";
 
 export const maxDuration = 60;
 
@@ -83,12 +83,26 @@ export async function POST(request: Request) {
     }
 
     const built = await buildGuardedSwap(quote, userPublicKey);
+
+    // Simulated before it is handed over, so the page can refuse to offer a signature for
+    // a fill that would not land. Costs nothing and spends nothing.
+    let simulation = null;
+    try {
+      simulation = await simulateGuardedSwap(built.swapTransaction);
+    } catch (error) {
+      simulation = {
+        ok: false, reason: "failed" as const, unitsConsumed: null, logs: [],
+        message: error instanceof Error ? error.message : "could not simulate",
+      };
+    }
+
     return NextResponse.json(
       {
         refused: false,
         oracle: quote.oracle,
         derivation: quote.derivation,
         bandBps: quote.bandBps,
+        simulation,
         ...built,
       },
       { headers: { "Cache-Control": "no-store" } },
