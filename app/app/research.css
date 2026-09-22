@@ -129,3 +129,46 @@ html[data-theme="light"] .findings-page .research-section { background: transpar
 }
 
 .measurement-panel p, .curve-message { overflow-wrap: anywhere; }
+
+/* The band applied to a live trade. Verdict colour carries the meaning, so it is the only
+   place accent is spent here. */
+.guarded-swap { margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1.75rem; }
+.guarded-intro { margin: .85rem 0 0; max-width: 62ch; font-size: 14px; line-height: 1.65; color: var(--ink-dim); }
+.guarded-intro code { font-family: var(--font-plex-mono), monospace; font-size: 12.5px; color: var(--ink); }
+
+.guarded-bands { display: flex; align-items: center; gap: .5rem; margin-top: 1.4rem; flex-wrap: wrap; }
+.guarded-bands-label { font-size: 12px; color: var(--ink-faint); margin-right: .25rem; }
+.guarded-band-toggle {
+  font-family: var(--font-plex-mono), monospace; font-size: 12px; padding: .3rem .7rem;
+  border: 1px solid var(--rule); border-radius: 2px; color: var(--ink-dim);
+  background: transparent; transition: border-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
+}
+.guarded-band-toggle:hover { border-color: var(--rule-bright); color: var(--ink); }
+.guarded-band-toggle[aria-pressed="true"] { border-color: var(--gold); color: var(--ink); }
+
+.guarded-message { margin-top: 1.5rem; font-size: 14px; color: var(--ink-faint); }
+.guarded-error { color: var(--red); }
+
+.guarded-verdict { margin-top: 1.5rem; border-left: 2px solid var(--rule-bright); padding: .1rem 0 .1rem 1rem; }
+.guarded-verdict strong { display: block; font-family: var(--font-heading), sans-serif; font-size: 15px; color: var(--ink); }
+.guarded-verdict p { margin: .4rem 0 0; max-width: 60ch; font-size: 13.5px; line-height: 1.6; color: var(--ink-dim); }
+.guarded-verdict.is-allowed { border-left-color: var(--green); }
+.guarded-verdict.is-refused { border-left-color: var(--red); }
+
+.guarded-figures {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.25rem 1.5rem; margin-top: 1.75rem; border-top: 1px solid var(--rule); padding-top: 1.25rem;
+}
+.guarded-figures dt { font-size: 12px; color: var(--ink-faint); }
+.guarded-figures dd {
+  margin: .3rem 0 0; font-family: var(--font-plex-mono), monospace;
+  font-variant-numeric: tabular-nums; font-size: 18px; color: var(--ink);
+}
+.guarded-figures small { display: block; margin-top: .2rem; font-size: 11.5px; color: var(--ink-faint); }
+
+.guarded-footnote { margin-top: 1.5rem; max-width: 66ch; font-size: 12.5px; line-height: 1.65; color: var(--ink-faint); }
+
+@media (max-width: 480px) {
+  .guarded-figures { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .guarded-figures dd { font-size: 16px; }
+}

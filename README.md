@@ -163,6 +163,8 @@ curl "https://closing-bell-eight.vercel.app/api/truecost?ticker=SPYx&notional=10
 |---|---|---|---|
 | `/api/truecost` | GET | `ticker` (SPYx/AAPLx/TSLAx/NVDAx), `notional` (100–10,000,000 USD) | pool impact vs wrapper premium for that size |
 | `/api/position` | GET | `address` (any Solana pubkey) | premium carried by that wallet's xStock holdings |
+| `/api/guarded-swap` | GET | `ticker`, `notional`, `band` (0–1000 bps) | the oracle band, and whether a fill fits inside it |
+| `/api/guarded-swap` | POST | same, plus `userPublicKey` in the body | an unsigned mainnet transaction carrying the band, or a refusal |
 | `/api/guard/run` | POST | `mode` (`reject`/`allow`) | runs a real guarded fill on devnet, returns the signature |
 
 `400` means the request was wrong and retrying will not help; `502` means a feed or route
@@ -221,6 +223,49 @@ its own.
 | Pyth read + band derivation | 3,369 CU |
 | Full guarded fill | ~33,000 CU |
 | Test suite | 8 cases, all passing |
+
+### The same band, enforced on mainnet, with nothing deployed
+
+The guard program is the trust-minimised path and it costs 2.76 SOL of rent to put on
+mainnet, which this project does not have. So there is a second path that works today.
+
+Every Solana swap already carries an on-chain minimum-output check: Jupiter's `route`
+instruction reverts with `SlippageToleranceExceeded` when the fill lands below the
+threshold. That threshold is normally derived from **the pool's own mid**, which is exactly
+why the wrapper premium is invisible — a pool sitting 54 bp rich reports 0 bp of slippage,
+because it is measuring against itself.
+
+Derive the same threshold from the Pyth oracle instead and the primitive becomes an oracle
+band. Nothing of ours runs on-chain; the router enforces our number.
+
+```bash
+# refuses: SPYx quotes ~50 bp above the oracle
+curl "https://closing-bell-eight.vercel.app/api/guarded-swap?ticker=SPYx&notional=10000&band=25"
+
+# builds: TSLAx carries no premium, so it fits the same band
+curl "https://closing-bell-eight.vercel.app/api/guarded-swap?ticker=TSLAx&notional=10000&band=25"
+```
+
+The control ticker turns up in the product, not just in the research: at one moment, at the
+same band, SPYx is refused at 49.3 bp and TSLAx goes through at 2.8 bp.
+
+The threshold is checkable rather than claimed. Decoding the built mainnet transaction and
+reading the JUP6 route instruction back:
+
+```
+we computed   -> slippageBps: 55 | minOutRaw: 2644063800
+in the tx     -> slippage_bps: 55 | quoted_out_amount: 2658845336
+enforced min  -> 2644221687      | at or above our minimum
+```
+
+Rounding always resolves against the trade and never against the user: the demanded amount
+rounds up, the tolerance rounds down. A test sweeps prices against bands and asserts that
+what Jupiter would enforce never falls below what the band requires.
+
+This path bounds the output amount and nothing else. It does not check oracle staleness,
+confidence, the market clock or keeper basis drift, and it cannot verify the realised price
+from balance deltas after the fill — the guard program does all of that, and is composable
+by other programs besides. Two paths, one band, honestly different in strength.
 
 ### Live on devnet — click the rejection
 

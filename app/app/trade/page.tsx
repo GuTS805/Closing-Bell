@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import PriceLadder from "../components/PriceLadder";
 import TradeSizeChart from "../components/TradeSizeChart";
+import GuardedSwap from "../components/GuardedSwap";
 
 const TICKERS = ["SPYx", "AAPLx", "TSLAx", "NVDAx"] as const;
 const SIZES = [1_000, 10_000, 50_000, 250_000];
@@ -151,6 +152,8 @@ export default function TradePage() {
       </section>
 
       <TradeSizeChart key={ticker} ticker={ticker} />
+
+      <GuardedSwap ticker={ticker} notional={notional} />
 
       <div className="mt-12 flex items-center justify-between border-t border-rule pt-6">
         <Link href="/" className="text-[13px] text-ink-faint transition-colors hover:text-ink">
