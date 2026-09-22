@@ -132,10 +132,27 @@ export default function BasisChart({ data }: Props) {
           return (
             <g key={sym}>
               {segments.map((seg, si) => {
-                const d = seg
-                  .map((p, i) => `${i === 0 ? "M" : "L"} ${x(offset + i).toFixed(1)} ${y(p.bps).toFixed(1)}`)
-                  .join(" ");
+                const start = offset;
                 offset += seg.length;
+
+                // A freshly restarted sampler has one sample in its newest session, and a
+                // one-point path draws nothing at all — the sample would silently vanish
+                // from a chart that claims to show every usable one. Draw it as a dot.
+                if (seg.length === 1) {
+                  return (
+                    <circle
+                      key={si}
+                      cx={x(start)}
+                      cy={y(seg[0].bps)}
+                      r={style.width}
+                      fill={style.stroke}
+                    />
+                  );
+                }
+
+                const d = seg
+                  .map((p, i) => `${i === 0 ? "M" : "L"} ${x(start + i).toFixed(1)} ${y(p.bps).toFixed(1)}`)
+                  .join(" ");
                 return (
                   <path
                     key={si}

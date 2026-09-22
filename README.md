@@ -57,12 +57,12 @@ asks a better question — does each sample predict the next?
 | tkr | premium | persistence (lag-1) |
 |---|---|---|
 | SPY | 53.9 ± 5.4 bp | **0.912** |
-| AAPL | 28.0 ± 11.6 bp | **0.853** |
-| NVDA | 12.0 ± 10.6 bp | 0.488 |
-| TSLA | −4.1 ± 8.1 bp | **0.025** |
+| AAPL | 27.9 ± 11.6 bp | **0.848** |
+| NVDA | 11.9 ± 10.6 bp | 0.486 |
+| TSLA | −4.0 ± 8.1 bp | **0.045** |
 
 **TSLA is the control that makes the rest readable.** Every ticker carrying a premium
-predicts itself three minutes later at ~0.85 to 0.91. TSLA, which carries none, sits at 0.03 —
+predicts itself three minutes later at ~0.85 to 0.91. TSLA, which carries none, sits at 0.05 —
 indistinguishable from noise. The instrument finds structure where a premium exists and
 finds none where it does not, which rules out the measurement itself as the source.
 
@@ -74,7 +74,7 @@ Two robustness checks:
   route failure at a 36% implied spread; the other two are merely wide, at ~1.2%. The
   99th percentile of every other sample is 0.80%.
 
-891 usable samples over **11.9 hours across three sessions**, as of 2026-09-22 — intraday
+895 usable samples over **11.9 hours across four sessions**, as of 2026-09-22 — intraday
 only, with no overnight or weekend coverage. The sampler is still running, so a fresh run
 reports more samples than the table above. Reproduce with `npx tsx scripts/analyze-basis.ts`.
 

@@ -33,10 +33,10 @@ const ROWS: Row[] = [
 ];
 
 const SERIES = [
-  { tkr: "SPY", n: 226, mean: 53.9, sd: 5.4, lag1: 0.912 },
-  { tkr: "AAPL", n: 227, mean: 28.0, sd: 11.6, lag1: 0.853 },
-  { tkr: "NVDA", n: 214, mean: 12.0, sd: 10.6, lag1: 0.488 },
-  { tkr: "TSLA", n: 224, mean: -4.1, sd: 8.1, lag1: 0.025, control: true },
+  { tkr: "SPY", n: 227, mean: 53.9, sd: 5.4, lag1: 0.912 },
+  { tkr: "AAPL", n: 228, mean: 27.9, sd: 11.6, lag1: 0.848 },
+  { tkr: "NVDA", n: 215, mean: 11.9, sd: 10.6, lag1: 0.486 },
+  { tkr: "TSLA", n: 225, mean: -4.0, sd: 8.1, lag1: 0.045, control: true },
 ];
 
 const MAX_YIELD = 100;
@@ -116,13 +116,14 @@ export default function FindingsPage() {
           Tesla is what makes the rest readable. Every stock carrying a premium predicts
           itself three minutes later at{" "}
           <span className="tabular text-ink">0.85 to 0.91</span>. Tesla, which carries none,
-          sits at <span className="tabular text-ink">0.03</span> — indistinguishable from
+          sits at <span className="tabular text-ink">0.05</span> — indistinguishable from
           noise. The sampler finds structure where a premium exists and none where it does
           not, which is what rules out our own measurement as the thing producing it.
         </p>
 
         <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-ink-faint">
-          891 usable samples over 11.9 hours in three sessions. Three were discarded by a
+          {seriesData.usableSamples.toLocaleString()} usable samples over{" "}
+          {seriesData.observedHours} hours in {seriesData.sessions} sessions. Three were discarded by a
           stated 1% spread rule — one a genuine after-hours route failure at 36%, two
           merely wide at 1.2%; the 99th percentile of every other sample is 0.80%. Premium
           correlates with oracle staleness at −0.36 to +0.04, so a stale price is not it.
