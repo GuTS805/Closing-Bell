@@ -56,25 +56,25 @@ asks a better question — does each sample predict the next?
 
 | tkr | premium | persistence (lag-1) |
 |---|---|---|
-| SPY | 53.5 ± 5.6 bp | **0.918** |
-| AAPL | 27.4 ± 12.0 bp | **0.857** |
-| NVDA | 11.5 ± 11.2 bp | 0.479 |
-| TSLA | −4.4 ± 8.1 bp | **0.059** |
+| SPY | 53.9 ± 5.4 bp | **0.912** |
+| AAPL | 28.0 ± 11.6 bp | **0.853** |
+| NVDA | 12.0 ± 10.6 bp | 0.488 |
+| TSLA | −4.1 ± 8.1 bp | **0.025** |
 
 **TSLA is the control that makes the rest readable.** Every ticker carrying a premium
-predicts itself three minutes later at ~0.86 to 0.92. TSLA, which carries none, sits at 0.06 —
+predicts itself three minutes later at ~0.85 to 0.91. TSLA, which carries none, sits at 0.03 —
 indistinguishable from noise. The instrument finds structure where a premium exists and
 finds none where it does not, which rules out the measurement itself as the source.
 
 Two robustness checks:
 
 - **Oracle staleness is not producing it.** Premium against the oracle's own age
-  correlates −0.35 to +0.06. A stale-price artifact would be strongly positive.
+  correlates −0.36 to +0.04. A stale-price artifact would be strongly positive.
 - **Three samples discarded** by a stated 1% spread rule. One is a genuine after-hours
   route failure at a 36% implied spread; the other two are merely wide, at ~1.2%. The
   99th percentile of every other sample is 0.80%.
 
-778 usable samples over **10.4 hours across two sessions**, as of 2026-09-22 — intraday
+891 usable samples over **11.9 hours across three sessions**, as of 2026-09-22 — intraday
 only, with no overnight or weekend coverage. The sampler is still running, so a fresh run
 reports more samples than the table above. Reproduce with `npx tsx scripts/analyze-basis.ts`.
 
@@ -130,6 +130,66 @@ for equity prices.
 cd app && cp .env.example .env.local   # fill in an RPC URL at minimum
 npm install && npm run dev
 ```
+
+## Use it as an API
+
+The premium is a number other tokenized-stock projects need and none of them compute. All
+three endpoints are public, read-only, CORS-open and live — no key, no wallet, no signup.
+
+```bash
+curl "https://closing-bell-eight.vercel.app/api/truecost?ticker=SPYx&notional=10000"
+```
+
+```jsonc
+{
+  "oracle":    { "price": 773.56, "ageSecs": 13, "feed": "Equity.US.SPY/USD", "shard": 1 },
+  "pool":      { "midPrice": 777.75, "fillPrice": 777.86, "venues": ["Raydium CLMM", "Byreal"] },
+  "breakdown": {
+    "poolImpactBps":     1.4,   // what your aggregator shows you
+    "wrapperPremiumBps": 54.3,  // what nothing shows you
+    "trueCostBps":       55.7
+  }
+}
+```
+
+| endpoint | method | params | returns |
+|---|---|---|---|
+| `/api/truecost` | GET | `ticker` (SPYx/AAPLx/TSLAx/NVDAx), `notional` (100–10,000,000 USD) | pool impact vs wrapper premium for that size |
+| `/api/position` | GET | `address` (any Solana pubkey) | premium carried by that wallet's xStock holdings |
+| `/api/guard/run` | POST | `mode` (`reject`/`allow`) | runs a real guarded fill on devnet, returns the signature |
+
+`400` means the request was wrong and retrying will not help; `502` means a feed or route
+could not be reached and retrying might. Responses carry a 15-second shared cache, which is
+well inside the premium's own rate of change.
+
+**If you are also building for Stocklana, take the number.** It costs one `curl`, and a
+second independent implementation of this measurement is worth more to the finding than
+exclusivity is worth to us.
+
+## The dataset
+
+`replay/basis-dense.jsonl` — every sample the basis sampler has taken, one JSON object per
+line, at a three-minute cadence across four tickers:
+
+```jsonc
+{"t":1789776953,"sym":"NVDA","oracle":222.515,"oracleAge":955,
+ "buyBps":18.17,"sellBps":11.49,"midBps":14.83,"spreadBps":6.66}
+```
+
+As far as we can tell, a public time series of the tokenized-equity basis at this cadence
+does not exist anywhere else. It is committed rather than summarised because the mechanism
+behind the premium is still unexplained, and the honest thing to publish alongside an open
+question is the data that raised it.
+
+```bash
+npx tsx scripts/analyze-basis.ts        # persistence, dispersion, staleness confound
+npx tsx scripts/aggregate-premium.ts    # premium across all circulating supply
+npx tsx scripts/build-series-json.ts    # regenerate the chart on /findings
+```
+
+Both `error` rows and wide-spread rows are kept in the file rather than filtered at write
+time, so anyone re-analysing it can choose their own exclusion rule instead of inheriting
+ours.
 
 ## The program
 

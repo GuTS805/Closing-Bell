@@ -1,4 +1,6 @@
 import Link from "next/link";
+import BasisChart from "../components/BasisChart";
+import seriesData from "../../public/basis-series.json";
 
 interface Row {
   tkr: string;
@@ -31,10 +33,10 @@ const ROWS: Row[] = [
 ];
 
 const SERIES = [
-  { tkr: "SPY", n: 197, mean: 53.5, sd: 5.6, lag1: 0.918 },
-  { tkr: "AAPL", n: 198, mean: 27.4, sd: 12.0, lag1: 0.857 },
-  { tkr: "NVDA", n: 187, mean: 11.5, sd: 11.2, lag1: 0.479 },
-  { tkr: "TSLA", n: 196, mean: -4.4, sd: 8.1, lag1: 0.059, control: true },
+  { tkr: "SPY", n: 226, mean: 53.9, sd: 5.4, lag1: 0.912 },
+  { tkr: "AAPL", n: 227, mean: 28.0, sd: 11.6, lag1: 0.853 },
+  { tkr: "NVDA", n: 214, mean: 12.0, sd: 10.6, lag1: 0.488 },
+  { tkr: "TSLA", n: 224, mean: -4.1, sd: 8.1, lag1: 0.025, control: true },
 ];
 
 const MAX_YIELD = 100;
@@ -71,6 +73,16 @@ export default function FindingsPage() {
         </p>
 
         <div className="mt-7">
+          <BasisChart data={seriesData} />
+        </div>
+
+        <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-ink-dim">
+          The shape is the argument. SPY holds a band roughly five basis points wide for
+          hours at a time; Tesla crosses its own zero line again and again. Same sampler,
+          same three-minute cadence, same moments.
+        </p>
+
+        <div className="mt-7">
           <div className="flex items-baseline gap-4 border-b border-rule pb-2 text-[12px] text-ink-faint">
             <span className="w-14 shrink-0">stock</span>
             <span className="w-28 shrink-0">premium</span>
@@ -103,17 +115,17 @@ export default function FindingsPage() {
         <p className="mt-6 max-w-xl border-l-2 border-gold/40 pl-4 text-[14px] leading-relaxed text-ink-dim">
           Tesla is what makes the rest readable. Every stock carrying a premium predicts
           itself three minutes later at{" "}
-          <span className="tabular text-ink">0.86 to 0.92</span>. Tesla, which carries none,
-          sits at <span className="tabular text-ink">0.06</span> — indistinguishable from
+          <span className="tabular text-ink">0.85 to 0.91</span>. Tesla, which carries none,
+          sits at <span className="tabular text-ink">0.03</span> — indistinguishable from
           noise. The sampler finds structure where a premium exists and none where it does
           not, which is what rules out our own measurement as the thing producing it.
         </p>
 
         <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-ink-faint">
-          778 usable samples over 10.4 hours in two sessions. Three were discarded by a
+          891 usable samples over 11.9 hours in three sessions. Three were discarded by a
           stated 1% spread rule — one a genuine after-hours route failure at 36%, two
           merely wide at 1.2%; the 99th percentile of every other sample is 0.80%. Premium
-          correlates with oracle staleness at −0.35 to +0.06, so a stale price is not it.
+          correlates with oracle staleness at −0.36 to +0.04, so a stale price is not it.
           This is intraday evidence only — we have no overnight or weekend coverage.
         </p>
       </section>
