@@ -78,7 +78,7 @@ async function jupQuote(inputMint: string, outputMint: string, amount: number) {
   const url =
     `https://lite-api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}` +
     `&amount=${amount}&slippageBps=10000`;
-  const r = await fetch(url, { cache: "no-store" });
+  const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12_000) });
   if (!r.ok) throw new Error(`Jupiter ${r.status}`);
   const q = await r.json();
   if (!q || q.error || !q.outAmount) throw new Error(q?.error ?? "no route");
@@ -89,6 +89,34 @@ async function jupQuote(inputMint: string, outputMint: string, amount: number) {
     venues: (q.routePlan ?? []).map((r: { swapInfo?: { label?: string } }) => r.swapInfo?.label).filter(Boolean) as string[],
   };
 }
+
+/** One shared reference isolates size effects from repeated mid/oracle measurements. */
+export async function getTradeSizeCurve(ticker: string) {
+  const startedAt = new Date().toISOString();
+  const reference = await getTrueCost(ticker, 1_000);
+  const market = MARKETS[ticker];
+  const sizes = [reference.pool.midPrice, 1_000, 10_000, 50_000, 250_000];
+  if (![reference.pool.midPrice, reference.oracle.price].every(v => Number.isFinite(v) && v > 0)) {
+    throw new Error("Invalid market reference");
+  }
+  const points = await Promise.all(sizes.map(async (notional, index) => {
+    const label = index === 0 ? "~1 token" : `$${notional.toLocaleString("en-US")}`;
+    try {
+      const quote = index === 1 ? null : await jupQuote(USDC, market.mint, Math.round(notional * 1e6));
+      const fillPrice = quote ? (quote.inAmount / 1e6) / (quote.outAmount / 10 ** market.decimals) : reference.pool.fillPrice;
+      const impactBps = (fillPrice / reference.pool.midPrice - 1) * 10_000;
+      if (!Number.isFinite(impactBps)) throw new Error("Invalid fill quote");
+      return { label, notional, impactBps, error: null };
+    } catch (error) {
+      return { label, notional, impactBps: null, error: error instanceof Error ? error.message : "Quote unavailable" };
+    }
+  }));
+  return { ticker, startedAt, capturedAt: new Date().toISOString(), oracleAgeSecs: reference.oracle.ageSecs,
+    premiumBps: reference.breakdown.wrapperPremiumBps, midPrice: reference.pool.midPrice,
+    points: points.sort((a, b) => a.notional - b.notional) };
+}
+
+export type TradeSizeCurveResult = Awaited<ReturnType<typeof getTradeSizeCurve>>;
 
 export interface TrueCostResult {
   ticker: string;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ExDividendChart from "../components/ExDividendChart";
 import BasisChart from "../components/BasisChart";
 import seriesData from "../../public/basis-series.json";
 
@@ -39,9 +40,6 @@ const SERIES = [
   { tkr: "TSLA", n: 225, mean: -4.0, sd: 8.1, lag1: 0.045, control: true },
 ];
 
-const MAX_YIELD = 100;
-const MAX_PREMIUM = 60;
-
 const TIMELINE = [
   { t: "03:50", note: "before the open", bps: 70.5 },
   { t: "11:59", note: "after the open", bps: 65.1 },
@@ -49,9 +47,17 @@ const TIMELINE = [
   { t: "15:07", note: "", bps: 53.1 },
 ];
 
+// Ordinary least squares with an intercept, using every reported snapshot point.
+const meanYield = ROWS.reduce((sum, r) => sum + r.yieldBps, 0) / ROWS.length;
+const meanPremium = ROWS.reduce((sum, r) => sum + r.premiumBps, 0) / ROWS.length;
+const slope = ROWS.reduce((sum, r) => sum + (r.yieldBps - meanYield) * (r.premiumBps - meanPremium), 0)
+  / ROWS.reduce((sum, r) => sum + (r.yieldBps - meanYield) ** 2, 0);
+const fittedPremium = (yieldBps: number) => meanPremium + slope * (yieldBps - meanYield);
+
 export default function FindingsPage() {
   return (
     <main className="workspace-page findings-page mx-auto w-full max-w-3xl px-6 py-12 sm:py-16">
+      <header className="research-hero">
       <div className="eyebrow page-eyebrow"><span className="status-dot" />RESEARCH & FINDINGS</div>
       <h1 className="max-w-lg font-display text-[32px] font-light leading-tight tracking-tight text-ink">
         We tried to explain the premium and could not
@@ -62,8 +68,21 @@ export default function FindingsPage() {
         measured, including the parts that do not fit.
       </p>
 
+      <div className="research-scope"><span>Intraday research</span><span>1 bp = 0.01%</span><span>Explanation unresolved</span></div>
+      </header>
+      <dl className="research-summary">
+        <div><dt>Usable samples</dt><dd>{seriesData.usableSamples.toLocaleString("en-US")}</dd><small>Across four stocks</small></div>
+        <div><dt>Observed time</dt><dd>{seriesData.observedHours}<span> hours</span></dd><small>{seriesData.sessions} sampling sessions</small></div>
+        <div><dt>Sampling cadence</dt><dd>{seriesData.sampleIntervalSecs / 60}<span> minutes</span></dd><small>Intraday coverage only</small></div>
+        <div><dt>Research status</dt><dd className="research-status">Unresolved</dd><small>Measured, not explained</small></div>
+      </dl>
+      <nav className="research-nav" aria-label="Research sections">
+        <a href="#stability"><span>01</span> Stability</a><a href="#comparison"><span>02</span> Cross-stock evidence</a><a href="#experiment"><span>03</span> The experiment</a><a href="#conclusion"><span>04</span> Conclusion</a>
+      </nav>
+
       {/* the premium as a series, not a snapshot */}
-      <section className="mt-14">
+      <section id="stability" className="research-section mt-14">
+        <div className="research-kicker">01 / THE TIME SERIES</div>
         <h2 className="font-display text-[19px] text-ink">First, is it even stable?</h2>
         <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-dim">
           Everything below this is one measurement per stock at one moment, which cannot
@@ -82,34 +101,17 @@ export default function FindingsPage() {
           same three-minute cadence, same moments.
         </p>
 
-        <div className="mt-7">
-          <div className="flex items-baseline gap-4 border-b border-rule pb-2 text-[12px] text-ink-faint">
-            <span className="w-14 shrink-0">stock</span>
-            <span className="w-28 shrink-0">premium</span>
-            <span className="flex-1">persistence</span>
-          </div>
-
-          {SERIES.map((r) => (
-            <div key={r.tkr} className="border-b border-rule py-3">
-              <div className="flex items-center gap-4">
-                <span className="w-14 shrink-0 text-[13px] text-ink">{r.tkr}</span>
-                <span className="tabular w-28 shrink-0 text-[13px] text-ink-dim">
-                  {r.mean.toFixed(1)} ± {r.sd.toFixed(1)} bp
-                </span>
-                <Bar
-                  value={r.lag1 * 100}
-                  max={100}
-                  label={r.lag1.toFixed(2)}
-                  tone={r.control ? "red" : "gold"}
-                />
-              </div>
-              {r.control ? (
-                <p className="mt-2 pl-[4.5rem] text-[12px] text-signal-red">
-                  control: the one stock with no premium, and the only one with no structure
-                </p>
-              ) : null}
-            </div>
-          ))}
+        <div className="research-table-wrap">
+          <table className="research-table">
+            <caption>Series summary - premium in basis points</caption>
+            <thead><tr><th scope="col">Stock</th><th scope="col">Samples</th><th scope="col">Mean &plusmn; SD</th><th scope="col">Persistence (lag 1)</th></tr></thead>
+            <tbody>{SERIES.map(r => <tr key={r.tkr}>
+              <th scope="row">{r.tkr}{r.control && <span className="research-tag">Control</span>}</th>
+              <td>{r.n}</td><td>{r.mean.toFixed(1)} &plusmn; {r.sd.toFixed(1)} bp</td>
+              <td><Bar value={r.lag1 * 100} max={100} label={r.lag1.toFixed(3)} tone={r.control ? "red" : "gold"} /></td>
+            </tr>)}</tbody>
+          </table>
+          <p className="research-footnote">Persistence is the correlation with the next sample. TSLA control: the one stock with no premium, and the only one with no structure.</p>
         </div>
 
         <p className="mt-6 max-w-xl border-l-2 border-gold/40 pl-4 text-[14px] leading-relaxed text-ink-dim">
@@ -122,7 +124,7 @@ export default function FindingsPage() {
         </p>
 
         <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-ink-faint">
-          {seriesData.usableSamples.toLocaleString()} usable samples over{" "}
+          {seriesData.usableSamples.toLocaleString("en-US")} usable samples over{" "}
           {seriesData.observedHours} hours in {seriesData.sessions} sessions. Three were discarded by a
           stated 1% spread rule — one a genuine after-hours route failure at 36%, two
           merely wide at 1.2%; the 99th percentile of every other sample is 0.80%. Premium
@@ -131,51 +133,37 @@ export default function FindingsPage() {
         </p>
       </section>
       {/* correlation, shown rather than asserted */}
-      <section className="mt-14">
+      <section id="comparison" className="research-section mt-14">
+        <div className="research-kicker">02 / CROSS-STOCK EVIDENCE</div>
         <h2 className="font-display text-[19px] text-ink">
           It is not pool size, and it is not liquidity
         </h2>
         <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-ink-dim">
           If demand drove the premium, the biggest wrappers would carry the most of it.
-          Sorted by dividend yield, with each stock&rsquo;s premium beside it:
+          Dividend yield plotted against each stock&rsquo;s premium:
         </p>
 
-        <div className="mt-7">
-          <div className="flex items-baseline gap-4 border-b border-rule pb-2 text-[12px] text-ink-faint">
-            <span className="w-14 shrink-0">stock</span>
-            <span className="flex-1">dividend yield</span>
-            <span className="flex-1">premium</span>
-            <span className="w-16 shrink-0 text-right">AUM</span>
+        <div className="research-evidence-grid">
+          <figure className="research-plot">
+            <div className="research-chart-heading"><h3>Dividend yield vs premium</h3><span>6-stock snapshot</span></div>
+            <svg viewBox="0 0 480 320" role="img" aria-label="Scatter plot of the six reported dividend yields and premiums. Exact values are in the adjacent table.">
+              {[0,20,40,60].map(v => <g key={v}><line x1="50" x2="435" y1={260-v*3.5} y2={260-v*3.5} stroke="var(--rule)"/><text x="40" y={264-v*3.5} textAnchor="end">{v}</text></g>)}
+              {[0,25,50,75,100].map(v => <g key={v}><line x1={50+v*3.65} x2={50+v*3.65} y1="40" y2="260" stroke="var(--rule)" strokeDasharray="3 5"/><text x={50+v*3.65} y="282" textAnchor="middle">{(v/100).toFixed(2)}%</text></g>)}
+              <text x="50" y="23">Premium (bp)</text><text x="240" y="311" textAnchor="middle">Dividend yield</text>
+              <line x1="50" x2="415" y1={260-fittedPremium(0)*3.5} y2={260-fittedPremium(100)*3.5} stroke="var(--ink-faint)" strokeWidth="1.5" strokeDasharray="6 5" />
+              {ROWS.map(r => <g key={r.tkr}>{r.breaks && <circle cx={50+r.yieldBps*3.65} cy={260-r.premiumBps*3.5} r="12" fill="none" stroke="var(--red)" strokeWidth="1.5" />}<circle cx={50+r.yieldBps*3.65} cy={260-r.premiumBps*3.5} r="6" fill={r.breaks ? "var(--red)" : "var(--gold)"}><title>{`${r.tkr}: ${(r.yieldBps/100).toFixed(2)}% yield, ${r.premiumBps} bp premium`}</title></circle><text x={50+r.yieldBps*3.65+(["SPY", "AAPL"].includes(r.tkr) ? -12 : 10)} y={260-r.premiumBps*3.5-10} textAnchor={["SPY", "AAPL"].includes(r.tkr) ? "end" : "start"} className="research-point-label">{r.tkr}</text></g>)}
+            </svg>
+            <figcaption>Dashed line: ordinary least-squares fit across all six stocks, with an intercept. Circled NVDA falls below the dividend trend. Circled TSLA is the zero-yield control that challenges the size/demand explanation; it does not break the dividend trend. Correlation is not a causal explanation.</figcaption>
+          </figure>
+          <div className="research-table-wrap">
+            <table className="research-table">
+              <caption>Reported snapshot - original stock order</caption>
+              <thead><tr><th scope="col">Stock</th><th scope="col">Yield</th><th scope="col">Premium</th><th scope="col">AUM</th></tr></thead>
+              <tbody>{ROWS.map(r => <tr key={r.tkr}><th scope="row">{r.tkr}</th><td>{(r.yieldBps/100).toFixed(2)}%</td><td className={r.breaks ? "text-signal-red" : ""}>{r.premiumBps.toFixed(1)} bp</td><td>${r.aum.toFixed(1)}m</td></tr>)}</tbody>
+            </table>
           </div>
-
-          {ROWS.map((r) => (
-            <div key={r.tkr} className="border-b border-rule py-3">
-              <div className="flex items-center gap-4">
-                <span className="w-14 shrink-0 text-[13px] text-ink">{r.tkr}</span>
-
-                <Bar
-                  value={r.yieldBps}
-                  max={MAX_YIELD}
-                  label={`${(r.yieldBps / 100).toFixed(2)}%`}
-                  tone="blue"
-                />
-                <Bar
-                  value={r.premiumBps}
-                  max={MAX_PREMIUM}
-                  label={`${r.premiumBps.toFixed(1)} bp`}
-                  tone={r.breaks ? "red" : "gold"}
-                />
-
-                <span className="tabular w-16 shrink-0 text-right text-[12px] text-ink-faint">
-                  ${r.aum.toFixed(1)}m
-                </span>
-              </div>
-              {r.breaks ? (
-                <p className="mt-2 pl-[4.5rem] text-[12px] text-signal-red">{r.breaks}</p>
-              ) : null}
-            </div>
-          ))}
         </div>
+        <div className="research-exceptions">{ROWS.filter(r => r.breaks).map(r => <div key={r.tkr}><span>{r.tkr} / EXCEPTION</span><p>{r.breaks}</p></div>)}</div>
 
         <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3">
           <Stat k="premium vs yield" v="0.887" strong />
@@ -192,7 +180,8 @@ export default function FindingsPage() {
       </section>
 
       {/* the experiment */}
-      <section className="mt-16">
+      <section id="experiment" className="research-section mt-16">
+        <div className="research-kicker">03 / THE NATURAL EXPERIMENT</div>
         <h2 className="font-display text-[19px] text-ink">
           The experiment, and the null result
         </h2>
@@ -202,29 +191,8 @@ export default function FindingsPage() {
           drops while the token keeps the claim. We watched it happen.
         </p>
 
-        <div className="mt-7 max-w-md">
-          {TIMELINE.map((p, i) => (
-            <div
-              key={p.t}
-              className="flex items-center gap-4 border-b border-rule py-2.5 last:border-b-0"
-            >
-              <span className="tabular w-12 shrink-0 text-[13px] text-ink-dim">{p.t}</span>
-              <span className="w-28 shrink-0 text-[12px] text-ink-faint">{p.note}</span>
-              <div className="relative h-1 flex-1 bg-rule">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gold/70"
-                  style={{ width: `${(p.bps / 80) * 100}%` }}
-                />
-              </div>
-              <span className="tabular w-16 shrink-0 text-right text-[13px] text-ink">
-                {p.bps} bp
-              </span>
-              {i === 1 ? (
-                <span className="absolute -ml-2 hidden text-[11px] text-ink-faint sm:inline" />
-              ) : null}
-            </div>
-          ))}
-        </div>
+        <div className="research-experiment-summary"><div><span>Predicted opening step</span><strong>~25 bp <small>upward</small></strong></div><div><span>Observed opening move</span><strong>5.4 bp <small>downward</small></strong></div><div><span>SPY spread</span><strong>3 bp</strong></div></div>
+        <ExDividendChart observations={TIMELINE} />
 
         <p className="mt-6 max-w-xl border-l-2 border-gold/40 pl-4 text-[14px] leading-relaxed text-ink-dim">
           Across the opening bell the premium moved{" "}
@@ -235,7 +203,8 @@ export default function FindingsPage() {
       </section>
 
       {/* honest ending */}
-      <section className="mt-16 border-t border-rule pt-8">
+      <section id="conclusion" className="research-section research-conclusion mt-16 border-t border-rule pt-8">
+        <div className="research-kicker">04 / AN OPEN QUESTION</div>
         <h2 className="font-display text-[19px] text-ink">Where that leaves it</h2>
         <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-ink-dim">
           The premium follows dividend yield and sits at zero for the one stock paying
@@ -286,7 +255,7 @@ function Bar({
       <div className="relative h-1.5 flex-1 bg-rule">
         <div
           className={`absolute inset-y-0 left-0 ${color}`}
-          style={{ width: `${Math.max(1.5, (value / max) * 100)}%` }}
+          style={{ width: `${Math.max(0, (value / max) * 100)}%` }}
         />
       </div>
       <span className="tabular w-14 shrink-0 text-[12px] text-ink-dim">{label}</span>

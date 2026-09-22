@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PriceLadder from "../components/PriceLadder";
+import TradeSizeChart from "../components/TradeSizeChart";
 
 const TICKERS = ["SPYx", "AAPLx", "TSLAx", "NVDAx"] as const;
 const SIZES = [1_000, 10_000, 50_000, 250_000];
@@ -70,8 +71,8 @@ export default function TradePage() {
         Price your trade
       </h1>
       <p className="mt-2 max-w-md text-[14px] leading-relaxed text-ink-dim">
-        Read live from Pyth for the share price and Jupiter for the pool. Nothing here is
-        cached.
+        Read from Pyth for the share price and Jupiter for the pool. Calculator quotes
+        may be briefly cached; the trade-size sweep requests fresh quotes.
       </p>
 
       <div className="trade-controls mt-9 space-y-3">
@@ -148,6 +149,8 @@ export default function TradePage() {
           </div>
         )}
       </section>
+
+      <TradeSizeChart key={ticker} ticker={ticker} />
 
       <div className="mt-12 flex items-center justify-between border-t border-rule pt-6">
         <Link href="/" className="text-[13px] text-ink-faint transition-colors hover:text-ink">

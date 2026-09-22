@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 /**
  * The premium over time, which is the finding the rest of the page only asserts.
  *
@@ -45,6 +49,8 @@ const STYLE: Record<string, { stroke: string; width: number; label: string }> = 
 const ORDER = ["SPY", "AAPL", "NVDA", "TSLA"];
 
 export default function BasisChart({ data }: Props) {
+  const [selected, setSelected] = useState<string | null>(null);
+
   // One x-step per sample, sessions laid end to end. Wall-clock spacing would devote most
   // of the chart to hours when nothing was running.
   const counts = ORDER.map((s) => (data.series[s] ?? []).flat().length);
@@ -71,15 +77,17 @@ export default function BasisChart({ data }: Props) {
     breaks.push(running);
   }
 
-  const ticks = [0, 20, 40, 60].filter((t) => t >= yMin && t <= yMax);
+  const ticks = [-40, -20, 0, 20, 40, 60, 80].filter((t) => t >= yMin && t <= yMax);
 
   return (
-    <figure className="m-0">
+    <figure className="research-series m-0">
+      <div className="research-chart-heading"><h3>Premium over the sampling period</h3><span>Basis points · session gaps removed</span></div>
+      <div className="research-series-scroll">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full"
         role="img"
-        aria-label={`Wrapper premium over ${data.observedHours} hours of sampling. SPY holds near 53 basis points, AAPL near 27, NVDA near 12, and TSLA stays at approximately zero throughout.`}
+        aria-label={`Recorded wrapper premiums over ${data.observedHours} observed hours across ${data.sessions} sessions. Negative premiums and sampling restarts are shown. Select a stock below to highlight its series.`}
       >
         {ticks.map((t) => (
           <g key={t}>
@@ -130,7 +138,7 @@ export default function BasisChart({ data }: Props) {
           const style = STYLE[sym];
           let offset = 0;
           return (
-            <g key={sym}>
+            <g key={sym} opacity={selected && selected !== sym ? 0.15 : 1}>
               {segments.map((seg, si) => {
                 const start = offset;
                 offset += seg.length;
@@ -214,18 +222,20 @@ export default function BasisChart({ data }: Props) {
           bp
         </text>
       </svg>
+      </div>
 
       <figcaption className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-ink-faint">
         {ORDER.map((sym) => (
-          <span key={sym} className="flex items-center gap-1.5">
+          <button type="button" key={sym} aria-pressed={selected === sym} onClick={() => setSelected(selected === sym ? null : sym)} className="research-series-toggle flex items-center gap-1.5">
             <span
               aria-hidden
               className="inline-block h-[2px] w-4"
               style={{ background: STYLE[sym].stroke }}
             />
             {STYLE[sym].label}
-          </span>
+          </button>
         ))}
+        <span className="research-legend-hint">Select a stock to highlight · select again to reset</span>
       </figcaption>
     </figure>
   );
