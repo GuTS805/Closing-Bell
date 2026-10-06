@@ -23,6 +23,8 @@ const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const PYTH_PUSH_ORACLE = new PublicKey("pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT");
 const SHARD = 1;
 const USDC_DECIMALS = 6;
+/** A stale equity reference cannot safely anchor a new executable band. */
+export const MAX_ORACLE_AGE_SECS = 300;
 
 /** Matches the guard program's open-market band. */
 export const DEFAULT_BAND_BPS = 50;
@@ -44,6 +46,15 @@ export interface BandDerivation {
   quotedDeviationBps: number;
   /** Present only when the trade is refused. */
   refusal: string | null;
+}
+
+/** Keep a read-only quote visible while refusing to build from an old reference. */
+export function requireFreshOracle(derivation: BandDerivation, ageSecs: number): BandDerivation {
+  if (Number.isFinite(ageSecs) && ageSecs >= -30 && ageSecs <= MAX_ORACLE_AGE_SECS) return derivation;
+  return {
+    ...derivation, buildable: false, slippageBps: null,
+    refusal: `The equity reference is ${ageSecs}s old. A guarded swap needs a reference no older than ${MAX_ORACLE_AGE_SECS}s.`,
+  };
 }
 
 /**
@@ -160,13 +171,14 @@ export async function getGuardedQuote(
   }
 
   const oracle = parsePriceUpdateV2(info.data);
-  const derivation = deriveBand({
+  const oracleAgeSecs = Math.floor(Date.now() / 1000) - oracle.publishTime;
+  const derivation = requireFreshOracle(deriveBand({
     oraclePriceUsd: oracle.price,
     notionalUsd,
     quotedOutRaw: Number(quoteResponse.outAmount),
     decimals: market.decimals,
     bandBps,
-  });
+  }), oracleAgeSecs);
 
   // Jupiter builds the transaction from the quote's own slippageBps, so the band has to be
   // written back into the quote rather than passed alongside it.
@@ -181,7 +193,7 @@ export async function getGuardedQuote(
     bandBps,
     oracle: {
       priceUsd: oracle.price,
-      ageSecs: Math.floor(Date.now() / 1000) - oracle.publishTime,
+      ageSecs: oracleAgeSecs,
       shard: SHARD,
     },
     derivation,

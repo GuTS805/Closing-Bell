@@ -131,3 +131,18 @@ test('rejects inputs that would silently produce a meaningless threshold', () =>
   assert.throws(() => deriveBand({ ...base, bandBps: -1 }), /band must be/);
   assert.throws(() => deriveBand({ ...base, bandBps: MAX_BAND_BPS + 1 }), /band must be/);
 });
+
+test('an old oracle can be inspected but cannot produce a transaction', () => {
+  const { deriveBand, requireFreshOracle, MAX_ORACLE_AGE_SECS } = load();
+  const inside = deriveBand({
+    oraclePriceUsd: SPY_ORACLE, notionalUsd: 10_000,
+    quotedOutRaw: quotedAt(SPY_ORACLE), decimals: SPY_DECIMALS, bandBps: 50,
+  });
+  assert.equal(inside.buildable, true);
+  assert.equal(requireFreshOracle(inside, MAX_ORACLE_AGE_SECS).buildable, true);
+  const stale = requireFreshOracle(inside, MAX_ORACLE_AGE_SECS + 1);
+  assert.equal(stale.buildable, false);
+  assert.equal(stale.slippageBps, null);
+  assert.match(stale.refusal, /equity reference is/);
+  assert.equal(requireFreshOracle(inside, -31).buildable, false);
+});
