@@ -8,10 +8,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/.well-known/assetlinks.json",
-        headers: [{ key: "Content-Type", value: "application/json" }],
-      },
-      {
         // The two read-only endpoints are documented as a public API, so they have to be
         // callable from a browser on someone else's origin. Both are GETs over public
         // chain data with no cookies, session or wallet involved, so there is nothing for
