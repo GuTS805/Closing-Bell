@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import PageMotion from "./components/PageMotion";
 import WalletContextProvider from "./components/WalletContextProvider";
 import Link from "next/link";
+import { pageMetadata, SITE_DESCRIPTION, SITE_URL } from "./site-metadata";
 import "./globals.css";
 import "./research.css";
 
@@ -26,9 +27,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Closing Bell",
-  description:
-    "The true cost of a tokenized stock trade: pool impact plus the wrapper premium nothing else shows.",
+  metadataBase: new URL(SITE_URL),
+  ...pageMetadata("/", "Closing Bell | Tokenized Stock True Cost", SITE_DESCRIPTION),
   manifest: "/manifest.json",
 };
 
