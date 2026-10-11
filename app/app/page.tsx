@@ -1,8 +1,19 @@
 import Link from "next/link";
 import BrandLogo, { type Brand } from "./components/BrandLogo";
 import { getTrueCost } from "./lib/truecost";
+import { SITE_DESCRIPTION, SITE_URL } from "./site-metadata";
 
 export const revalidate = 0;
+const appStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Closing Bell",
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Web",
+  isAccessibleForFree: true,
+};
 const usd = (value: number) => value.toLocaleString("en-US", { style: "currency", currency: "USD" });
 const percent = (bps: number) => `${(bps / 100).toFixed(2)}%`;
 
@@ -17,6 +28,10 @@ export default async function Landing() {
 
   return (
     <main className="landing-shell reference-landing">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(appStructuredData).replace(/</g, "\\u003c") }}
+      />
       <section className="hero-grid">
         <div className="hero-copy">
           <div className="eyebrow hero-pill"><span className="status-dot" /> REAL PRICES. REAL ANSWERS.</div>
