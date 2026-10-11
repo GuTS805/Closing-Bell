@@ -371,39 +371,7 @@ depends on the live oracle price, so the figure moves a little each time.
 
 ---
 
-## 7. Honest limits
-
-- **Deployed to devnet, not mainnet.** The mainnet-fork setup is
-  committed: `scripts/fork-mainnet.sh` boots a local validator forked from mainnet carrying
-  the **real Raydium CLMM pool SPYx trades in**, the real Pyth SPY feed and the real
-  Token-2022 mint. The account set is derived, not hand-written —
-  `scripts/derive-clone-set.ts` asks Jupiter to build a real swap and reads back every
-  account it touches.
-- **The basis is keeper-supplied**, because the source feeds are not maintained on-chain
-  (`Crypto.*X/USD` was 5.8 days stale and `Crypto.*X/*.RR` ~59 days stale, shard 0 only).
-  It is bounded in-program rather than trusted — a 300 bp ceiling against measured values of
-  57 bp and 27 bp, a 10 bp/min drift limit, and ageing out after an hour with the band
-  widened rather than the centre silently assumed exact.
-- **The mainnet band refuses stale references.** A guarded swap needs an equity price no
-  older than 300 seconds, and refuses to build otherwise. When the Pyth equity feed goes
-  quiet, the live numbers drift and every guarded quote is refused — the app shows the
-  oracle's age on every page so this is visible rather than silent.
-- **Devnet has no live equity feed** (`Equity.US.AAPL/USD` was 78 days stale there), so the
-  devnet demo bands against `Crypto.SOL/USD`. The mechanism is identical; only the
-  reference asset differs. Devnet's fresh shard is 0, the inverse of mainnet.
-- **Devnet test mints** reproduce the xStock extensions that matter — permanent delegate and
-  freeze authority. The transfer hook is omitted because on mainnet every xStock carries it
-  *disabled*.
-- **The off-hours thesis did not survive measurement.** No off-hours penalty was found;
-  several names are worse mid-session. The dislocation at size is a thin-AMM property that
-  holds around the clock. See `docs/day0-findings.md` section 12.
-- **The guard binds only transactions that include its two instructions.** For your own
-  users that holds by construction; for others it is an instruction they append, not
-  protection for a pool as a whole.
-
----
-
-## 8. What happens after the hackathon
+## 7. What happens after the hackathon
 
 The guard is a primitive, not an app — the seatbelt, not the car.
 
@@ -436,7 +404,7 @@ possibility, and the measurement infrastructure would be the thing that told us.
 
 ---
 
-## 9. How we kept the evidence honest
+## 8. How we kept the evidence honest
 
 Two independent bugs in this build had the same shape — the thing being tested worked, and
 the *proof* of it was what failed.
