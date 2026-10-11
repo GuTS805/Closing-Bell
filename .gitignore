@@ -13,3 +13,6 @@ keypairs/
 app/node_modules/
 app/.next/
 tmp/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
